@@ -1,0 +1,13 @@
+node_modules/
+dist/
+.next/
+out/
+.env
+.env.local
+*.log
+
+# Foundry
+packages/contracts/out/
+packages/contracts/cache/
+packages/contracts/broadcast/
+packages/contracts/node_modules/
