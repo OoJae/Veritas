@@ -2,6 +2,7 @@
 pragma solidity ^0.8.24;
 
 import {IVeritas, VerdictMode} from "../interfaces/IVeritas.sol";
+import {Verdict} from "../types/VeritasTypes.sol";
 
 /// @title PredictionMarket
 /// @notice Users stake YES or NO on a question. Veritas resolves it.
@@ -96,11 +97,11 @@ contract PredictionMarket {
         Market storage m = markets[marketId];
         require(!m.resolved, "already resolved");
 
-        (,,, bool result,,) = veritas.getVerdict(m.verdictId);
+        Verdict memory v = veritas.getVerdict(m.verdictId);
         m.resolved = true;
-        m.outcome = result;
+        m.outcome = v.result;
 
-        emit MarketResolved(marketId, result);
+        emit MarketResolved(marketId, v.result);
     }
 
     /// @notice Claim winnings. Winners split the losers' pool proportionally.

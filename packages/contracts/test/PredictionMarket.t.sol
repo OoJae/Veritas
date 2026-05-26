@@ -42,9 +42,9 @@ contract PredictionMarketTest is Test {
         vm.prank(bob);
         market.stakeNo{value: 2 ether}(marketId);
 
-        (, uint256 yesPool, uint256 noPool,,,) = market.getMarket(marketId);
-        assertEq(yesPool, 1 ether);
-        assertEq(noPool, 2 ether);
+        PredictionMarket.Market memory m = market.getMarket(marketId);
+        assertEq(m.yesPool, 1 ether);
+        assertEq(m.noPool, 2 ether);
     }
 
     function test_fullFlow_yesWins() public {
@@ -64,9 +64,9 @@ contract PredictionMarketTest is Test {
         bytes memory yesResult = abi.encode("YES");
         platform.simulateResponse(1, yesResult, 42);
 
-        (,,, bool resolved, bool outcome,) = market.getMarket(marketId);
-        assertTrue(resolved);
-        assertTrue(outcome);
+        PredictionMarket.Market memory m = market.getMarket(marketId);
+        assertTrue(m.resolved);
+        assertTrue(m.outcome);
 
         uint256 aliceBalBefore = alice.balance;
         vm.prank(alice);
@@ -95,9 +95,9 @@ contract PredictionMarketTest is Test {
         bytes memory noResult = abi.encode("NO");
         platform.simulateResponse(1, noResult, 99);
 
-        (,,, bool resolved, bool outcome,) = market.getMarket(marketId);
-        assertTrue(resolved);
-        assertFalse(outcome);
+        PredictionMarket.Market memory m = market.getMarket(marketId);
+        assertTrue(m.resolved);
+        assertFalse(m.outcome);
 
         uint256 bobBalBefore = bob.balance;
         vm.prank(bob);
