@@ -23,6 +23,8 @@ interface IVeritas {
         uint256 index,
         string summary
     );
+    event VerdictPoked(uint256 indexed verdictId);
+    event CallbackFailed(uint256 indexed verdictId, address payoutTarget);
 
     /// @notice Request a verdict on a natural-language question.
     /// @param question The yes/no or numeric question to resolve.

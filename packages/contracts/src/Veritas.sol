@@ -2,23 +2,29 @@
 pragma solidity ^0.8.24;
 
 import {IAgentRequester, ResponseStatus, Response, Request} from "./interfaces/IAgentRequester.sol";
-import {ILLMParseWebsite, AgentIds, AgentPricing} from "./interfaces/IAgents.sol";
+import {ILLMParseWebsite, ILLMInference, AgentIds, AgentPricing} from "./interfaces/IAgents.sol";
 import {IVeritas} from "./interfaces/IVeritas.sol";
 import {VerdictMode, Stage, Verdict} from "./types/VeritasTypes.sol";
+import {SomniaEventHandler} from "@somnia-chain/reactivity-contracts/contracts/SomniaEventHandler.sol";
+import {SomniaExtensions} from "@somnia-chain/reactivity-contracts/contracts/interfaces/SomniaExtensions.sol";
+import {ISomniaReactivityPrecompile} from "@somnia-chain/reactivity-contracts/contracts/interfaces/ISomniaReactivityPrecompile.sol";
 
 /// @title Veritas
 /// @notice A trustless AI verdict primitive for the Somnia Agentic L1.
 ///         Takes a natural-language question plus evidence URLs, returns a
 ///         binding consensus-verified verdict with an auditable receipt.
-contract Veritas is IVeritas {
+///         Uses Somnia Reactivity to auto-poke verdicts when deadlines expire.
+contract Veritas is IVeritas, SomniaEventHandler {
     IAgentRequester public immutable platform;
 
-    uint256 public nextVerdictId;
+    uint256 public nextVerdictId = 1;
     uint256 public constant MAX_EVIDENCE_URLS = 3;
     uint256 public constant DEFAULT_DEADLINE_BUFFER = 15 minutes;
 
     mapping(uint256 => Verdict) public verdicts;
     mapping(uint256 => uint256) public requestToVerdict;
+    mapping(uint256 => uint256) public verdictToSubscription; // verdictId => reactivity subscriptionId
+    mapping(uint256 => uint256) public timestampToVerdictId;  // deadlineMillis => verdictId
 
     error OnlyPlatform();
     error UnknownRequest(uint256 requestId);
@@ -26,7 +32,6 @@ contract Veritas is IVeritas {
     error InsufficientPayment(uint256 required, uint256 sent);
     error TooManyEvidenceUrls(uint256 count);
     error DeadlineNotPassed();
-    error CallbackFailed();
 
     constructor(address _platform) {
         platform = IAgentRequester(_platform);
@@ -73,6 +78,9 @@ contract Veritas is IVeritas {
             _fireFirstEvidence(verdictId);
         }
 
+        // Schedule a Reactivity deadline trigger (best-effort, falls back to manual poke)
+        _scheduleDeadline(verdictId);
+
         emit VerdictRequested(verdictId, msg.sender, mode, question);
     }
 
@@ -96,6 +104,7 @@ contract Veritas is IVeritas {
 
         v.stage = Stage.Failed;
         emit VerdictFailed(verdictId, "deadline exceeded, poked to failed");
+        emit VerdictPoked(verdictId);
     }
 
     /// @inheritdoc IVeritas
@@ -122,6 +131,7 @@ contract Veritas is IVeritas {
         if (status == ResponseStatus.Failed || status == ResponseStatus.TimedOut) {
             v.stage = Stage.Failed;
             emit VerdictFailed(verdictId, status == ResponseStatus.Failed ? "agent failed" : "agent timed out");
+            _cancelDeadline(verdictId);
             return;
         }
 
@@ -134,10 +144,68 @@ contract Veritas is IVeritas {
         } else {
             v.stage = Stage.Failed;
             emit VerdictFailed(verdictId, "empty responses on success status");
+            _cancelDeadline(verdictId);
         }
     }
 
+    /// @notice Reactivity handler. Called by the precompile when a deadline fires.
+    function _onEvent(
+        address /* emitter */,
+        bytes32[] calldata eventTopics,
+        bytes calldata /* data */
+    ) internal override {
+        uint256 timestampMillis = uint256(eventTopics[1]);
+        uint256 verdictId = timestampToVerdictId[timestampMillis];
+        if (verdictId == 0) return;
+
+        Verdict storage v = verdicts[verdictId];
+        if (v.stage == Stage.FetchingEvidence || v.stage == Stage.Reasoning) {
+            v.stage = Stage.Failed;
+            emit VerdictFailed(verdictId, "deadline exceeded, auto-poked via reactivity");
+            emit VerdictPoked(verdictId);
+        }
+        delete timestampToVerdictId[timestampMillis];
+    }
+
     receive() external payable {}
+
+    // ----- Internal: deadline scheduling -----
+
+    function _scheduleDeadline(uint256 verdictId) internal {
+        // Skip if Veritas doesn't hold enough balance for the minimum requirement
+        if (address(this).balance < SomniaExtensions.SUBSCRIPTION_OWNER_MINIMUM_BALANCE) {
+            return;
+        }
+
+        Verdict storage v = verdicts[verdictId];
+        uint256 deadlineMillis = v.deadline * 1000 + verdictId; // unique per verdict
+        timestampToVerdictId[deadlineMillis] = verdictId;
+
+        SomniaExtensions.SubscriptionOptions memory opts = SomniaExtensions.SubscriptionOptions({
+            priorityFeePerGas: 1,
+            maxFeePerGas: 0,
+            gasLimit: 100_000
+        });
+
+        uint256 subId = SomniaExtensions.scheduleSubscriptionAtTimestamp(
+            address(this), deadlineMillis, opts
+        );
+        verdictToSubscription[verdictId] = subId;
+    }
+
+    function _cancelDeadline(uint256 verdictId) internal {
+        uint256 subId = verdictToSubscription[verdictId];
+        if (subId == 0) return;
+
+        // Try to cancel. Ignore failure if subscription already fired.
+        // solhint-disable-next-line avoid-low-level-calls
+        (bool success, ) = SomniaExtensions.SOMNIA_REACTIVITY_PRECOMPILE_ADDRESS.call(
+            abi.encodeWithSelector(ISomniaReactivityPrecompile.unsubscribe.selector, subId)
+        );
+        // solhint-disable-next-line no-unused-vars
+        success; // intentionally unused
+        delete verdictToSubscription[verdictId];
+    }
 
     // ----- Internal: Simple mode -----
 
@@ -192,11 +260,9 @@ contract Veritas is IVeritas {
         _resolve(verdictId, result, 80, receiptPtr);
     }
 
-    // ----- Internal: Deliberated mode stub -----
+    // ----- Internal: Deliberated mode -----
 
     function _fireFirstEvidence(uint256 verdictId) internal {
-        // Deliberated mode: fire first evidence extraction.
-        // Full implementation in Sprint 2.
         Verdict storage v = verdicts[verdictId];
         v.stage = Stage.FetchingEvidence;
         v.evidenceCursor = 0;
@@ -259,9 +325,45 @@ contract Veritas is IVeritas {
     }
 
     function _fireInference(uint256 verdictId) internal {
-        // Will be fully implemented with ILLMInference in Sprint 2.
-        // For now, this is a placeholder that the Deliberated path can use.
-        revert("deliberated mode not yet implemented");
+        Verdict storage v = verdicts[verdictId];
+
+        string memory evidenceBlock = "";
+        for (uint256 i = 0; i < v.gatheredEvidence.length; i++) {
+            evidenceBlock = string.concat(evidenceBlock, "\n---\n", v.gatheredEvidence[i]);
+        }
+
+        string memory prompt = string.concat(
+            "Based on the following evidence, answer YES or NO.\n\n",
+            "Question: ", v.question,
+            evidenceBlock
+        );
+
+        string[] memory allowedValues = new string[](3);
+        allowedValues[0] = "YES";
+        allowedValues[1] = "NO";
+        allowedValues[2] = "UNRESOLVED";
+
+        bytes memory payload = abi.encodeWithSelector(
+            ILLMInference.inferString.selector,
+            prompt,
+            "You are a precise fact-checker. Respond with only YES, NO, or UNRESOLVED.",
+            false,
+            allowedValues
+        );
+
+        uint256 reserve = platform.getRequestDeposit();
+        uint256 reward = AgentPricing.LLM_INFERENCE_COST_PER_AGENT * AgentPricing.DEFAULT_SUBCOMMITTEE_SIZE;
+        uint256 deposit = reserve + reward;
+
+        uint256 requestId = platform.createRequest{value: deposit}(
+            AgentIds.LLM_INFERENCE_ID,
+            address(this),
+            this.handleResponse.selector,
+            payload
+        );
+
+        v.lastRequestId = requestId;
+        requestToVerdict[requestId] = verdictId;
     }
 
     // ----- Internal: resolve and payout -----
@@ -280,10 +382,13 @@ contract Veritas is IVeritas {
 
         emit VerdictResolved(verdictId, result, confidence, bytes32(receiptPtr));
 
+        // Cancel the reactivity subscription since the verdict resolved
+        _cancelDeadline(verdictId);
+
         if (v.payoutTarget != address(0) && v.payoutCalldata.length > 0) {
             (bool success,) = v.payoutTarget.call(v.payoutCalldata);
             if (!success) {
-                revert CallbackFailed();
+                emit CallbackFailed(verdictId, v.payoutTarget);
             }
         }
     }

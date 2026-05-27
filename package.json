@@ -8,7 +8,19 @@
     "lint": "turbo lint"
   },
   "devDependencies": {
+    "playwright": "^1.60.0",
     "turbo": "^2.5.0"
   },
-  "packageManager": "pnpm@11.1.2"
+  "packageManager": "pnpm@11.1.2",
+  "pnpm": {
+    "overrides": {
+      "viem": "2.21.0",
+      "wagmi": "2.14.0",
+      "@wagmi/connectors": "5.6.0",
+      "@rainbow-me/rainbowkit": "2.1.7"
+    }
+  },
+  "dependencies": {
+    "@somnia-chain/reactivity-contracts": "^0.2.0"
+  }
 }

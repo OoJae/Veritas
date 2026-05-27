@@ -1,0 +1,79 @@
+"use client";
+
+import { useReadContract, useWriteContract, useWaitForTransactionReceipt } from "wagmi";
+import { parseEther, formatEther } from "viem";
+import { insuranceVaultAbi, addresses, quoteVerdictSimple } from "@veritas/agent-template";
+
+export function useGetPolicy(policyId: number | undefined) {
+  return useReadContract({
+    address: addresses.insuranceVault,
+    abi: insuranceVaultAbi,
+    functionName: "getPolicy",
+    args: policyId !== undefined ? [BigInt(policyId)] : undefined,
+    query: { enabled: policyId !== undefined },
+  });
+}
+
+export function useNextPolicyId() {
+  return useReadContract({
+    address: addresses.insuranceVault,
+    abi: insuranceVaultAbi,
+    functionName: "nextPolicyId",
+  });
+}
+
+export function useCreatePolicy() {
+  const { writeContract, data: hash, isPending, error } = useWriteContract();
+  const { isLoading: isConfirming, isSuccess } = useWaitForTransactionReceipt({ hash });
+
+  function createPolicy(
+    question: string,
+    evidenceUrls: string[],
+    premium: string,
+    payoutAmount: string,
+    maxParticipants: number
+  ) {
+    writeContract({
+      address: addresses.insuranceVault,
+      abi: insuranceVaultAbi,
+      functionName: "createPolicy",
+      args: [question, evidenceUrls, parseEther(premium), parseEther(payoutAmount), BigInt(maxParticipants)],
+      value: quoteVerdictSimple(),
+    });
+  }
+
+  return { createPolicy, hash, isPending, isConfirming, isSuccess, error };
+}
+
+export function useJoinPolicy(policyId: number) {
+  const { writeContract, data: hash, isPending, error } = useWriteContract();
+  const { isLoading: isConfirming, isSuccess } = useWaitForTransactionReceipt({ hash });
+
+  function joinPolicy(premium: string) {
+    writeContract({
+      address: addresses.insuranceVault,
+      abi: insuranceVaultAbi,
+      functionName: "joinPolicy",
+      args: [BigInt(policyId)],
+      value: parseEther(premium),
+    });
+  }
+
+  return { joinPolicy, hash, isPending, isConfirming, isSuccess, error };
+}
+
+export function useClaimPayout(policyId: number) {
+  const { writeContract, data: hash, isPending, error } = useWriteContract();
+  const { isLoading: isConfirming, isSuccess } = useWaitForTransactionReceipt({ hash });
+
+  function claimPayout() {
+    writeContract({
+      address: addresses.insuranceVault,
+      abi: insuranceVaultAbi,
+      functionName: "claimPayout",
+      args: [BigInt(policyId)],
+    });
+  }
+
+  return { claimPayout, hash, isPending, isConfirming, isSuccess, error };
+}

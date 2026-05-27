@@ -1,0 +1,148 @@
+// SPDX-License-Identifier: MIT
+pragma solidity ^0.8.24;
+
+import {IVeritas, VerdictMode} from "../interfaces/IVeritas.sol";
+import {Verdict} from "../types/VeritasTypes.sol";
+
+/// @title InsuranceVault
+/// @notice Parametric insurance that auto-pays based on AI verdicts from Veritas.
+contract InsuranceVault {
+    IVeritas public immutable veritas;
+
+    struct Policy {
+        string question;
+        string[] evidenceUrls;
+        uint256 premium;
+        uint256 payoutAmount;
+        uint256 maxParticipants;
+        uint256 participantCount;
+        uint256 verdictId;
+        bool resolved;
+        bool outcome;
+        uint256 createdAt;
+        address creator;
+    }
+
+    uint256 public nextPolicyId;
+    mapping(uint256 => Policy) public policies;
+    mapping(uint256 => mapping(address => bool)) public isParticipant;
+    mapping(uint256 => address[]) internal participantList;
+    mapping(uint256 => mapping(address => bool)) public hasClaimed;
+
+    event PolicyCreated(uint256 indexed policyId, string question, uint256 premium, uint256 payoutAmount);
+    event PolicyJoined(uint256 indexed policyId, address indexed participant);
+    event PolicyResolved(uint256 indexed policyId, bool outcome);
+    event PayoutClaimed(uint256 indexed policyId, address indexed participant, uint256 amount);
+
+    error PolicyFull();
+    error AlreadyJoined();
+    error PolicyAlreadyResolved();
+    error NotResolved();
+    error NoPayout();
+    error AlreadyClaimed();
+    error NotParticipant();
+    error InsufficientPremium();
+
+    constructor(address _veritas) {
+        veritas = IVeritas(_veritas);
+    }
+
+    /// @notice Create a new insurance policy and fund the Veritas verdict request.
+    function createPolicy(
+        string calldata question,
+        string[] calldata evidenceUrls,
+        uint256 premium,
+        uint256 payoutAmount,
+        uint256 maxParticipants
+    ) external payable returns (uint256 policyId) {
+        policyId = nextPolicyId++;
+
+        bytes memory payoutCalldata = abi.encodeWithSelector(
+            InsuranceVault.resolvePolicy.selector,
+            policyId
+        );
+
+        uint256 verdictId = veritas.requestVerdict{value: msg.value}(
+            question,
+            evidenceUrls,
+            VerdictMode.Simple,
+            address(this),
+            payoutCalldata
+        );
+
+        policies[policyId] = Policy({
+            question: question,
+            evidenceUrls: evidenceUrls,
+            premium: premium,
+            payoutAmount: payoutAmount,
+            maxParticipants: maxParticipants,
+            participantCount: 0,
+            verdictId: verdictId,
+            resolved: false,
+            outcome: false,
+            createdAt: block.timestamp,
+            creator: msg.sender
+        });
+
+        emit PolicyCreated(policyId, question, premium, payoutAmount);
+    }
+
+    /// @notice Buy into a policy by paying the premium.
+    function joinPolicy(uint256 policyId) external payable {
+        Policy storage p = policies[policyId];
+        if (p.resolved) revert PolicyAlreadyResolved();
+        if (p.participantCount >= p.maxParticipants) revert PolicyFull();
+        if (isParticipant[policyId][msg.sender]) revert AlreadyJoined();
+        if (msg.value < p.premium) revert InsufficientPremium();
+
+        isParticipant[policyId][msg.sender] = true;
+        participantList[policyId].push(msg.sender);
+        p.participantCount++;
+
+        if (msg.value > p.premium) {
+            (bool ok,) = msg.sender.call{value: msg.value - p.premium}("");
+            require(ok, "refund failed");
+        }
+
+        emit PolicyJoined(policyId, msg.sender);
+    }
+
+    /// @notice Called by Veritas as the payout callback. Sets the outcome.
+    function resolvePolicy(uint256 policyId) external {
+        Policy storage p = policies[policyId];
+        if (p.resolved) revert AlreadyClaimed();
+
+        Verdict memory v = veritas.getVerdict(p.verdictId);
+        p.resolved = true;
+        p.outcome = v.result;
+
+        emit PolicyResolved(policyId, v.result);
+    }
+
+    /// @notice Claim payout after resolution (only if outcome is YES).
+    function claimPayout(uint256 policyId) external {
+        Policy storage p = policies[policyId];
+        if (!p.resolved) revert NotResolved();
+        if (!p.outcome) revert NoPayout();
+        if (!isParticipant[policyId][msg.sender]) revert NotParticipant();
+        if (hasClaimed[policyId][msg.sender]) revert AlreadyClaimed();
+
+        hasClaimed[policyId][msg.sender] = true;
+        (bool ok,) = msg.sender.call{value: p.payoutAmount}("");
+        require(ok, "transfer failed");
+
+        emit PayoutClaimed(policyId, msg.sender, p.payoutAmount);
+    }
+
+    /// @notice Get policy details.
+    function getPolicy(uint256 policyId) external view returns (Policy memory) {
+        return policies[policyId];
+    }
+
+    /// @notice Get participants of a policy.
+    function getParticipants(uint256 policyId) external view returns (address[] memory) {
+        return participantList[policyId];
+    }
+
+    receive() external payable {}
+}

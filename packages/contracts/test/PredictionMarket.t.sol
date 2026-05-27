@@ -6,6 +6,8 @@ import {Veritas} from "../src/Veritas.sol";
 import {PredictionMarket} from "../src/consumers/PredictionMarket.sol";
 import {MockAgentRequester} from "../src/mocks/MockAgentRequester.sol";
 import {VerdictMode, Stage, Verdict} from "../src/types/VeritasTypes.sol";
+import {ISomniaReactivityPrecompile} from "@somnia-chain/reactivity-contracts/contracts/interfaces/ISomniaReactivityPrecompile.sol";
+import {SomniaExtensions} from "@somnia-chain/reactivity-contracts/contracts/interfaces/SomniaExtensions.sol";
 
 contract PredictionMarketTest is Test {
     MockAgentRequester public platform;
@@ -16,6 +18,11 @@ contract PredictionMarketTest is Test {
     address public bob = address(0xB0B);
 
     function setUp() public {
+        // Mock the reactivity precompile
+        address precompile = SomniaExtensions.SOMNIA_REACTIVITY_PRECOMPILE_ADDRESS;
+        vm.mockCall(precompile, abi.encodeWithSelector(ISomniaReactivityPrecompile.subscribe.selector), abi.encode(uint256(1)));
+        vm.mockCall(precompile, abi.encodeWithSelector(ISomniaReactivityPrecompile.unsubscribe.selector), abi.encode());
+
         platform = new MockAgentRequester();
         veritas = new Veritas(address(platform));
         market = new PredictionMarket(address(veritas));

@@ -1,0 +1,155 @@
+export const predictionMarketAbi = [
+  {
+    type: "constructor",
+    inputs: [{ name: "_veritas", type: "address", internalType: "address" }],
+    stateMutability: "nonpayable",
+  },
+  { type: "receive", stateMutability: "payable" },
+  {
+    type: "function",
+    name: "createMarket",
+    inputs: [
+      { name: "question", type: "string" },
+      { name: "evidenceUrls", type: "string[]" },
+    ],
+    outputs: [{ name: "marketId", type: "uint256" }],
+    stateMutability: "payable",
+  },
+  {
+    type: "function",
+    name: "getMarket",
+    inputs: [{ name: "marketId", type: "uint256" }],
+    outputs: [
+      {
+        name: "",
+        type: "tuple",
+        internalType: "struct PredictionMarket.Market",
+        components: [
+          { name: "question", type: "string" },
+          { name: "verdictId", type: "uint256" },
+          { name: "yesPool", type: "uint256" },
+          { name: "noPool", type: "uint256" },
+          { name: "resolved", type: "bool" },
+          { name: "outcome", type: "bool" },
+          { name: "createdAt", type: "uint256" },
+        ],
+      },
+    ],
+    stateMutability: "view",
+  },
+  {
+    type: "function",
+    name: "stakeYes",
+    inputs: [{ name: "marketId", type: "uint256" }],
+    outputs: [],
+    stateMutability: "payable",
+  },
+  {
+    type: "function",
+    name: "stakeNo",
+    inputs: [{ name: "marketId", type: "uint256" }],
+    outputs: [],
+    stateMutability: "payable",
+  },
+  {
+    type: "function",
+    name: "claim",
+    inputs: [{ name: "marketId", type: "uint256" }],
+    outputs: [],
+    stateMutability: "nonpayable",
+  },
+  {
+    type: "function",
+    name: "resolveMarket",
+    inputs: [{ name: "marketId", type: "uint256" }],
+    outputs: [],
+    stateMutability: "nonpayable",
+  },
+  {
+    type: "function",
+    name: "nextMarketId",
+    inputs: [],
+    outputs: [{ name: "", type: "uint256" }],
+    stateMutability: "view",
+  },
+  {
+    type: "function",
+    name: "markets",
+    inputs: [{ name: "", type: "uint256" }],
+    outputs: [
+      { name: "question", type: "string" },
+      { name: "verdictId", type: "uint256" },
+      { name: "yesPool", type: "uint256" },
+      { name: "noPool", type: "uint256" },
+      { name: "resolved", type: "bool" },
+      { name: "outcome", type: "bool" },
+      { name: "createdAt", type: "uint256" },
+    ],
+    stateMutability: "view",
+  },
+  {
+    type: "function",
+    name: "yesStakes",
+    inputs: [
+      { name: "", type: "uint256" },
+      { name: "", type: "address" },
+    ],
+    outputs: [{ name: "", type: "uint256" }],
+    stateMutability: "view",
+  },
+  {
+    type: "function",
+    name: "noStakes",
+    inputs: [
+      { name: "", type: "uint256" },
+      { name: "", type: "address" },
+    ],
+    outputs: [{ name: "", type: "uint256" }],
+    stateMutability: "view",
+  },
+  {
+    type: "function",
+    name: "claimed",
+    inputs: [
+      { name: "", type: "uint256" },
+      { name: "", type: "address" },
+    ],
+    outputs: [{ name: "", type: "bool" }],
+    stateMutability: "view",
+  },
+  {
+    type: "event",
+    name: "MarketCreated",
+    inputs: [
+      { name: "marketId", type: "uint256", indexed: true },
+      { name: "question", type: "string", indexed: false },
+    ],
+  },
+  {
+    type: "event",
+    name: "MarketResolved",
+    inputs: [
+      { name: "marketId", type: "uint256", indexed: true },
+      { name: "outcome", type: "bool", indexed: false },
+    ],
+  },
+  {
+    type: "event",
+    name: "StakePlaced",
+    inputs: [
+      { name: "marketId", type: "uint256", indexed: true },
+      { name: "user", type: "address", indexed: true },
+      { name: "side", type: "bool", indexed: false },
+      { name: "amount", type: "uint256", indexed: false },
+    ],
+  },
+  {
+    type: "event",
+    name: "WinningsClaimed",
+    inputs: [
+      { name: "marketId", type: "uint256", indexed: true },
+      { name: "user", type: "address", indexed: true },
+      { name: "amount", type: "uint256", indexed: false },
+    ],
+  },
+] as const;

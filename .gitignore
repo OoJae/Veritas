@@ -6,6 +6,23 @@ out/
 .env.local
 *.log
 
+# OS
+.DS_Store
+
+# Local tooling
+.mcp.json
+.npmrc
+.playwright-mcp/
+.turbo/
+
+# Internal research/planning docs (not for public repo)
+Veritas-Build-Plan.md
+Winning-the-Somnia-Agentathon-Research.md
+
+# Internal design artifacts
+screenshots/
+landing-page.png
+
 # Foundry
 packages/contracts/out/
 packages/contracts/cache/
