@@ -13,6 +13,14 @@
   },
   "packageManager": "pnpm@11.1.2",
   "pnpm": {
+    "onlyBuiltDependencies": [
+      "bufferutil",
+      "utf-8-validate",
+      "keccak",
+      "sharp"
+    ]
+  },
+  "pnpm": {
     "overrides": {
       "viem": "2.21.0",
       "wagmi": "2.14.0",
