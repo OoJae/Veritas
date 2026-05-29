@@ -10,7 +10,7 @@ import { Badge } from "@/components/ui/badge";
 import { Separator } from "@/components/ui/separator";
 import { VerdictStage } from "@/components/verdict-display";
 import { useGetDispute, useSubmitEvidence, useResolveDispute, useClaimBounty } from "@/hooks/use-disputes";
-import { useGetVerdict, usePokeVerdict } from "@/hooks/use-veritas";
+import { useGetVerdict, usePokeVerdict, useVerdictFailureReason } from "@/hooks/use-veritas";
 import { ReasoningTrace } from "@/components/reasoning-trace";
 import { formatEther } from "viem";
 import { useAccount } from "wagmi";
@@ -41,6 +41,9 @@ export default function DisputeDetailPage({ params }: { params: Promise<{ id: st
   const { claimBounty, isPending: claimPending, isConfirming: claimConfirming, isSuccess: claimSuccess } = useClaimBounty(disputeId);
   const { poke, isPending: pokePending, isConfirming: pokeConfirming, isSuccess: pokeSuccess } = usePokeVerdict(verdictId ?? 0);
 
+  const stage = verdict ? Number(verdict.stage) : 0;
+  const failureReason = useVerdictFailureReason(verdictId, stage === 4);
+
   useEffect(() => {
     if (submitSuccess || resolveSuccess || claimSuccess || pokeSuccess) {
       refetchDispute();
@@ -57,8 +60,6 @@ export default function DisputeDetailPage({ params }: { params: Promise<{ id: st
       </div>
     );
   }
-
-  const stage = verdict ? Number(verdict.stage) : 0;
 
   return (
     <div className="min-h-screen">
@@ -91,7 +92,7 @@ export default function DisputeDetailPage({ params }: { params: Promise<{ id: st
               </div>
               <div>
                 <p className="text-muted-foreground">Verdict Status</p>
-                <VerdictStage stage={stage} />
+                <VerdictStage stage={stage} failureReason={failureReason} />
               </div>
             </div>
 
@@ -146,6 +147,19 @@ export default function DisputeDetailPage({ params }: { params: Promise<{ id: st
 
         {verdict && stage === 3 && verdict.lastRequestId > BigInt(0) && (
           <ReasoningTrace requestId={verdict.lastRequestId} />
+        )}
+
+        {verdict && stage === 4 && (
+          <Card>
+            <CardHeader>
+              <CardTitle className="text-lg">Verdict Failed</CardTitle>
+            </CardHeader>
+            <CardContent>
+              <p className="text-sm text-muted-foreground">
+                {failureReason ?? "No failure reason available."}
+              </p>
+            </CardContent>
+          </Card>
         )}
 
         {verdict && (stage === 1 || stage === 2) && verdict.deadline < BigInt(Math.floor(Date.now() / 1000)) && (

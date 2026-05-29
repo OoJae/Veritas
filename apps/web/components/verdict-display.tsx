@@ -9,9 +9,16 @@ const stageLabels: Record<number, { label: string; variant: "default" | "seconda
   4: { label: "Failed", variant: "destructive" },
 };
 
-export function VerdictStage({ stage }: { stage: number }) {
+export function VerdictStage({ stage, failureReason }: { stage: number; failureReason?: string | null }) {
   const { label, variant } = stageLabels[stage] ?? { label: "Unknown", variant: "secondary" as const };
-  return <Badge variant={variant}>{label}</Badge>;
+  return (
+    <div className="flex flex-col gap-1">
+      <Badge variant={variant}>{label}</Badge>
+      {stage === 4 && failureReason && (
+        <span className="text-xs text-muted-foreground">{failureReason}</span>
+      )}
+    </div>
+  );
 }
 
 export function VerdictResult({ result }: { result: boolean }) {

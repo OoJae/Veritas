@@ -8,7 +8,7 @@ import { Badge } from "@/components/ui/badge";
 import { Separator } from "@/components/ui/separator";
 import { BoolBadge, VerdictStage } from "@/components/verdict-display";
 import { useGetPolicy, useJoinPolicy, useClaimPayout } from "@/hooks/use-insurance";
-import { useGetVerdict, getVerdictStageName, usePokeVerdict } from "@/hooks/use-veritas";
+import { useGetVerdict, getVerdictStageName, usePokeVerdict, useVerdictFailureReason } from "@/hooks/use-veritas";
 import { ReasoningTrace } from "@/components/reasoning-trace";
 import { formatEther } from "viem";
 import { useAccount } from "wagmi";
@@ -36,6 +36,9 @@ export default function PolicyDetailPage({ params }: { params: Promise<{ id: str
   const { claimPayout, isPending: claimPending, isConfirming: claimConfirming, isSuccess: claimSuccess } = useClaimPayout(policyId);
   const { poke, isPending: pokePending, isConfirming: pokeConfirming, isSuccess: pokeSuccess } = usePokeVerdict(verdictId ?? 0);
 
+  const stage = verdict ? Number(verdict.stage) : 0;
+  const failureReason = useVerdictFailureReason(verdictId, stage === 4);
+
   useEffect(() => {
     if (joinSuccess || claimSuccess || pokeSuccess) {
       refetchPolicy();
@@ -52,8 +55,6 @@ export default function PolicyDetailPage({ params }: { params: Promise<{ id: str
       </div>
     );
   }
-
-  const stage = verdict ? Number(verdict.stage) : 0;
 
   return (
     <div className="min-h-screen">
@@ -86,7 +87,7 @@ export default function PolicyDetailPage({ params }: { params: Promise<{ id: str
               </div>
               <div>
                 <p className="text-muted-foreground">Verdict Status</p>
-                <VerdictStage stage={stage} />
+                <VerdictStage stage={stage} failureReason={failureReason} />
               </div>
             </div>
             {stage === 3 && (
@@ -100,6 +101,19 @@ export default function PolicyDetailPage({ params }: { params: Promise<{ id: str
 
         {verdict && stage === 3 && verdict.lastRequestId > BigInt(0) && (
           <ReasoningTrace requestId={verdict.lastRequestId} />
+        )}
+
+        {verdict && stage === 4 && (
+          <Card>
+            <CardHeader>
+              <CardTitle className="text-lg">Verdict Failed</CardTitle>
+            </CardHeader>
+            <CardContent>
+              <p className="text-sm text-muted-foreground">
+                {failureReason ?? "No failure reason available."}
+              </p>
+            </CardContent>
+          </Card>
         )}
 
         {verdict && (stage === 1 || stage === 2) && verdict.deadline < BigInt(Math.floor(Date.now() / 1000)) && (

@@ -10,7 +10,7 @@ import { Badge } from "@/components/ui/badge";
 import { Separator } from "@/components/ui/separator";
 import { BoolBadge, VerdictStage } from "@/components/verdict-display";
 import { useGetMarket, useStakeYes, useStakeNo, useClaim } from "@/hooks/use-markets";
-import { useGetVerdict, getVerdictStageName, usePokeVerdict } from "@/hooks/use-veritas";
+import { useGetVerdict, getVerdictStageName, usePokeVerdict, useVerdictFailureReason } from "@/hooks/use-veritas";
 import { ReasoningTrace } from "@/components/reasoning-trace";
 import { formatEther } from "viem";
 import { useAccount } from "wagmi";
@@ -30,6 +30,9 @@ export default function MarketDetailPage({ params }: { params: Promise<{ id: str
   const { stakeNo, isPending: stakeNoPending, isConfirming: stakeNoConfirming, isSuccess: stakeNoSuccess } = useStakeNo(marketId);
   const { claim, isPending: claimPending, isConfirming: claimConfirming, isSuccess: claimSuccess } = useClaim(marketId);
   const { poke, isPending: pokePending, isConfirming: pokeConfirming, isSuccess: pokeSuccess } = usePokeVerdict(verdictId ?? 0);
+
+  const stage = verdict ? Number(verdict.stage) : 0;
+  const failureReason = useVerdictFailureReason(verdictId, stage === 4);
 
   useEffect(() => {
     if (stakeYesSuccess || stakeNoSuccess || claimSuccess || pokeSuccess) {
@@ -52,7 +55,6 @@ export default function MarketDetailPage({ params }: { params: Promise<{ id: str
   const totalPool = market.yesPool + market.noPool;
   const yesPct = totalPool > BigInt(0) ? Number((market.yesPool * BigInt(100)) / totalPool) : 50;
   const noPct = 100 - yesPct;
-  const stage = verdict ? Number(verdict.stage) : 0;
 
   return (
     <div className="min-h-screen">
@@ -98,7 +100,7 @@ export default function MarketDetailPage({ params }: { params: Promise<{ id: str
             <div className="text-sm space-y-1">
               <div className="flex justify-between">
                 <span className="text-muted-foreground">Verdict Status</span>
-                <VerdictStage stage={stage} />
+                <VerdictStage stage={stage} failureReason={failureReason} />
               </div>
               {verdict && (
                 <>
@@ -120,6 +122,19 @@ export default function MarketDetailPage({ params }: { params: Promise<{ id: str
 
         {verdict && stage === 3 && verdict.lastRequestId > BigInt(0) && (
           <ReasoningTrace requestId={verdict.lastRequestId} />
+        )}
+
+        {verdict && stage === 4 && (
+          <Card>
+            <CardHeader>
+              <CardTitle className="text-lg">Verdict Failed</CardTitle>
+            </CardHeader>
+            <CardContent>
+              <p className="text-sm text-muted-foreground">
+                {failureReason ?? "No failure reason available."}
+              </p>
+            </CardContent>
+          </Card>
         )}
 
         {verdict && (stage === 1 || stage === 2) && verdict.deadline < BigInt(Math.floor(Date.now() / 1000)) && (
