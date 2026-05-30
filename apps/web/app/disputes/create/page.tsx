@@ -9,6 +9,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { useRaiseDispute } from "@/hooks/use-disputes";
+import { isScrapeableUrl, looksLikeRawApi } from "@/lib/evidence";
 import { useAccount } from "wagmi";
 
 export default function CreateDisputePage() {
@@ -21,10 +22,12 @@ export default function CreateDisputePage() {
   const [evidenceUrl, setEvidenceUrl] = useState("");
   const [bounty, setBounty] = useState("0.5");
 
+  const urlValid = isScrapeableUrl(evidenceUrl);
+
   function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
-    const urls = evidenceUrl.trim() ? [evidenceUrl.trim()] : [];
-    raiseDispute(respondent, question, urls, bounty);
+    if (!urlValid) return;
+    raiseDispute(respondent, question, [evidenceUrl.trim()], bounty);
   }
 
   if (isSuccess) {
@@ -92,7 +95,23 @@ export default function CreateDisputePage() {
                   placeholder="https://example.com/evidence"
                   value={evidenceUrl}
                   onChange={(e) => setEvidenceUrl(e.target.value)}
+                  required
                 />
+                <p className="text-xs text-muted-foreground">
+                  A public web page the AI will read as your evidence. Use a normal
+                  HTML page, not a raw JSON API.
+                </p>
+                {evidenceUrl.trim() && !urlValid && (
+                  <p className="text-xs text-destructive">
+                    Enter a valid http(s) URL.
+                  </p>
+                )}
+                {urlValid && looksLikeRawApi(evidenceUrl) && (
+                  <p className="text-xs text-yellow-600 dark:text-yellow-500">
+                    This looks like a raw JSON API. A human-readable page resolves
+                    more reliably.
+                  </p>
+                )}
               </div>
               <div className="space-y-2">
                 <Label htmlFor="bounty">Bounty (STT)</Label>
@@ -114,7 +133,7 @@ export default function CreateDisputePage() {
               {!isConnected ? (
                 <p className="text-sm text-muted-foreground">Connect your wallet to raise a dispute</p>
               ) : (
-                <Button type="submit" disabled={isPending || isConfirming || !question.trim() || !respondent.trim()}>
+                <Button type="submit" disabled={isPending || isConfirming || !question.trim() || !respondent.trim() || !urlValid}>
                   {isPending ? "Confirm in wallet..." : isConfirming ? "Creating..." : "Raise Dispute"}
                 </Button>
               )}

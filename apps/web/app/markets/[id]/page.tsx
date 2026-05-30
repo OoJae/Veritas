@@ -102,19 +102,11 @@ export default function MarketDetailPage({ params }: { params: Promise<{ id: str
                 <span className="text-muted-foreground">Verdict Status</span>
                 <VerdictStage stage={stage} failureReason={failureReason} />
               </div>
-              {verdict && (
-                <>
-                  <div className="flex justify-between">
-                    <span className="text-muted-foreground">Confidence</span>
-                    <span>{verdict.confidence}%</span>
-                  </div>
-                  {stage === 3 && (
-                    <div className="flex justify-between">
-                      <span className="text-muted-foreground">Result</span>
-                      <BoolBadge value={verdict.result} trueLabel="YES" falseLabel="NO" />
-                    </div>
-                  )}
-                </>
+              {verdict && stage === 3 && (
+                <div className="flex justify-between">
+                  <span className="text-muted-foreground">Result</span>
+                  <BoolBadge value={verdict.result} trueLabel="YES" falseLabel="NO" />
+                </div>
               )}
             </div>
           </CardContent>

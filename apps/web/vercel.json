@@ -1,6 +1,0 @@
-{
-  "buildCommand": "cd ../.. && pnpm turbo run build --filter=@veritas/web",
-  "installCommand": "cd ../.. && pnpm install",
-  "framework": "nextjs",
-  "outputDirectory": ".next"
-}

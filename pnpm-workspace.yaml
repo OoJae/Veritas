@@ -2,7 +2,7 @@ packages:
   - "packages/*"
   - "apps/*"
 allowBuilds:
-  bufferutil: set this to true or false
-  keccak: set this to true or false
+  bufferutil: true
+  keccak: true
   sharp: true
-  utf-8-validate: set this to true or false
+  utf-8-validate: true

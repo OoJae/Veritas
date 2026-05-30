@@ -1,0 +1,9 @@
+node_modules/
+.next/
+.turbo/
+packages/contracts/lib/
+packages/contracts/cache/
+packages/contracts/out/
+*.log
+.DS_Store
+.vercel

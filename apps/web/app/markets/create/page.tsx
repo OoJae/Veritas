@@ -9,6 +9,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { useCreateMarket } from "@/hooks/use-markets";
+import { isScrapeableUrl, looksLikeRawApi } from "@/lib/evidence";
 import { quoteVerdictSimple } from "@veritas/agent-template";
 import { formatEther } from "viem";
 import { useAccount } from "wagmi";
@@ -22,11 +23,12 @@ export default function CreateMarketPage() {
   const [evidenceUrl, setEvidenceUrl] = useState("");
 
   const cost = formatEther(quoteVerdictSimple());
+  const urlValid = isScrapeableUrl(evidenceUrl);
 
   function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
-    const urls = evidenceUrl.trim() ? [evidenceUrl.trim()] : [];
-    createMarket(question, urls);
+    if (!urlValid) return;
+    createMarket(question, [evidenceUrl.trim()]);
   }
 
   if (isSuccess) {
@@ -75,16 +77,30 @@ export default function CreateMarketPage() {
                 />
               </div>
               <div className="space-y-2">
-                <Label htmlFor="evidence">Evidence URL (optional)</Label>
+                <Label htmlFor="evidence">Evidence URL</Label>
                 <Input
                   id="evidence"
-                  placeholder="https://example.com/evidence"
+                  placeholder="https://en.wikipedia.org/wiki/Spherical_Earth"
                   value={evidenceUrl}
                   onChange={(e) => setEvidenceUrl(e.target.value)}
+                  required
                 />
                 <p className="text-xs text-muted-foreground">
-                  A URL the AI will fetch to evaluate your question
+                  A public web page the AI will read to decide the verdict. Use a
+                  normal HTML page, not a raw JSON API. Questions without a source
+                  page cannot be resolved.
                 </p>
+                {evidenceUrl.trim() && !urlValid && (
+                  <p className="text-xs text-destructive">
+                    Enter a valid http(s) URL.
+                  </p>
+                )}
+                {urlValid && looksLikeRawApi(evidenceUrl) && (
+                  <p className="text-xs text-yellow-600 dark:text-yellow-500">
+                    This looks like a raw JSON API. The agent reads HTML pages, so
+                    a human-readable page resolves more reliably.
+                  </p>
+                )}
               </div>
               <div className="rounded-lg bg-secondary p-3 text-sm">
                 <p>Verdict cost: <span className="font-semibold">{cost} STT</span></p>
@@ -97,7 +113,7 @@ export default function CreateMarketPage() {
               {!isConnected ? (
                 <p className="text-sm text-muted-foreground">Connect your wallet to create a market</p>
               ) : (
-                <Button type="submit" disabled={isPending || isConfirming || !question.trim()}>
+                <Button type="submit" disabled={isPending || isConfirming || !question.trim() || !urlValid}>
                   {isPending ? "Confirm in wallet..." : isConfirming ? "Creating..." : "Create Market"}
                 </Button>
               )}

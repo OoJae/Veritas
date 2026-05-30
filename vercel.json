@@ -1,0 +1,6 @@
+{
+  "framework": "nextjs",
+  "buildCommand": "cd ../.. && pnpm turbo build --filter=@veritas/web",
+  "installCommand": "cd ../.. && corepack enable && pnpm install",
+  "outputDirectory": ".next"
+}

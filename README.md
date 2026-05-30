@@ -47,10 +47,10 @@ The key insight: Somnia agent invocations are asynchronous. Your contract calls 
 | Contract | Address |
 |----------|---------|
 | Platform (AgentRequester) | `0x037Bb9C718F3f7fe5eCBDB0b600D607b52706776` |
-| Veritas | `0x3324FCbe5c35982196D614113516e17a34eD019B` |
-| PredictionMarket | `0x228018ED7d0fD34F356589c901EEE00100864199` |
-| InsuranceVault | `0xfE484491b1588F6b1Cc654D5d51E1d9Debf7Fc3D` |
-| DisputeArbiter | `0x54D85A352D633FF0C66f6f45a5451299D0Aa5263` |
+| Veritas | `0x702969d634b103f26F859aE658cD0405aa510FE3` |
+| PredictionMarket | `0xf8F20dF2EaA923754b368e215f3B3f1646f4C480` |
+| InsuranceVault | `0x7d18cd184f43A7c4302C20016E53BECe508ad7A8` |
+| DisputeArbiter | `0x61d63870DAE005138721251c5cddf0D437A405bE` |
 
 ## Deposit Math
 
@@ -166,6 +166,32 @@ pnpm --filter @veritas/web build
 pnpm --filter @veritas/agent-template build
 ```
 
+## Deploying
+
+```bash
+cd packages/contracts
+export DEPLOYER_PRIVATE_KEY=0x...   # funded testnet wallet (~35 STT: 32 to fund Veritas + gas)
+export PLATFORM_ADDRESS=0x037Bb9C718F3f7fe5eCBDB0b600D607b52706776
+forge script script/Deploy.s.sol --rpc-url https://api.infra.testnet.somnia.network \
+  --broadcast --slow --gas-estimate-multiplier 3000
+node script/sync-addresses.mjs       # patches the SDK addresses from the broadcast
+pnpm --filter @veritas/agent-template build
+```
+
+Two Somnia-specific gotchas, both learned the hard way:
+
+- Pin `evm_version = "shanghai"` in `foundry.toml`. solc 0.8.30 defaults to cancun, and Somnia's EVM rejects cancun-era bytecode.
+- Somnia charges far more gas for contract deployment than mainnet Ethereum, and its `eth_estimateGas` under-reports it. Use a large `--gas-estimate-multiplier` (3000) or the CREATE runs out of gas and consumes the whole limit. Block gas limit is ~500M, so the inflated per-tx limits are fine.
+
+After deploying, verify all consumers point at the same Veritas:
+
+```bash
+RPC=https://api.infra.testnet.somnia.network
+cast call <PredictionMarket> 'veritas()(address)' --rpc-url $RPC
+cast call <InsuranceVault>  'veritas()(address)' --rpc-url $RPC
+cast call <DisputeArbiter>  'veritas()(address)' --rpc-url $RPC
+```
+
 ## Verdict Modes
 
 - **Simple**: One LLM Parse Website call. The agent searches or scrapes, reasons, and returns YES/NO/UNRESOLVED in a single round trip. Cost: `quoteVerdictSimple()` = 0.33 STT.
@@ -179,7 +205,9 @@ After a verdict resolves, fetch the AI reasoning trace:
 https://receipts.testnet.agents.somnia.host?requestId=<lastRequestId>
 ```
 
-Use `getReceiptUrl(requestId)` to build this URL. The response contains the chain-of-thought reasoning, confidence score, and execution steps. The `<ReasoningTrace>` component in the frontend renders this automatically.
+Use `getReceiptUrl(requestId)` to build this URL. The response is meant to contain the chain-of-thought reasoning, confidence score, and execution steps, and the `<ReasoningTrace>` component renders it automatically.
+
+Note (testnet status): the documented `?requestId=` endpoint currently returns "Cannot GET /" for live request IDs, and resolved verdicts carry an on-chain receipt pointer of 0, so no receipt is retrievable yet. `<ReasoningTrace>` degrades to an empty state in this case rather than erroring. This is the one piece pending confirmation from Somnia DevRel (the receipts route and whether the Parse Website agent emits a receipt).
 
 ## License
 

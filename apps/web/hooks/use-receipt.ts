@@ -12,8 +12,17 @@ export function useReceipt(requestId: bigint | undefined) {
       if (!requestId) return null;
       const url = getReceiptUrl(requestId);
       const res = await fetch(url);
+      // Receipts can take a few seconds to appear, or may be pruned for old
+      // requests. The service also returns an HTML error page (not JSON) when a
+      // receipt is missing, so guard the parse rather than throwing.
       if (!res.ok) return null;
-      return res.json();
+      const contentType = res.headers.get("content-type") ?? "";
+      if (!contentType.includes("application/json")) return null;
+      try {
+        return (await res.json()) as ReceiptData;
+      } catch {
+        return null;
+      }
     },
     enabled: !!requestId && requestId > BigInt(0),
     staleTime: 5 * 60 * 1000,
