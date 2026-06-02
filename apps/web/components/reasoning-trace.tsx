@@ -5,51 +5,45 @@ import { Badge } from "@/components/ui/badge";
 import { useReceipt } from "@/hooks/use-receipt";
 import { getReceiptUrl } from "@veritas/agent-template";
 
-function renderValue(key: string, value: unknown): React.ReactNode {
-  if (value === null || value === undefined) return null;
-  if (typeof value === "boolean") return <Badge variant={value ? "default" : "secondary"}>{String(value)}</Badge>;
-  if (typeof value === "string" || typeof value === "number" || typeof value === "bigint") {
-    return <span className="text-sm break-words">{String(value)}</span>;
+type AgentResult = {
+  verdict?: string;
+  confidence_score?: number;
+  reasoning?: string;
+  answerable?: boolean;
+};
+
+// The execution manifest carries the agent's structured output deep in the step
+// list, at agentReceipt.steps[].outputs.result. Dig it out defensively.
+function extractResult(manifest: Record<string, unknown>): AgentResult | null {
+  const agentReceipt = manifest.agentReceipt as Record<string, unknown> | undefined;
+  const steps = (agentReceipt?.steps as Array<Record<string, unknown>>) ?? [];
+  for (const step of steps) {
+    const outputs = step?.outputs as Record<string, unknown> | undefined;
+    const result = outputs?.result as AgentResult | undefined;
+    if (result && (result.verdict !== undefined || result.reasoning !== undefined)) {
+      return result;
+    }
   }
-  if (Array.isArray(value)) {
-    return (
-      <ul className="list-disc list-inside space-y-1">
-        {value.map((item, i) => (
-          <li key={i} className="text-sm">{typeof item === "string" ? item : JSON.stringify(item)}</li>
-        ))}
-      </ul>
-    );
-  }
-  if (typeof value === "object") {
-    return (
-      <div className="pl-4 border-l border-border space-y-2">
-        {Object.entries(value as Record<string, unknown>).map(([k, v]) => (
-          <div key={k}>
-            <span className="text-xs text-muted-foreground">{k}</span>
-            <div>{renderValue(k, v)}</div>
-          </div>
-        ))}
-      </div>
-    );
-  }
-  return <span className="text-sm">{JSON.stringify(value)}</span>;
+  return null;
 }
 
-const FIELD_LABELS: Record<string, string> = {
-  reasoning: "Reasoning",
-  answerable: "Answerable",
-  confidence_score: "Confidence Score",
-  steps: "Steps",
-  prompt: "Prompt",
-  response: "Response",
-  result: "Result",
-  url: "URL",
-  error: "Error",
-};
+function num(v: unknown): number | undefined {
+  return typeof v === "number" ? v : undefined;
+}
 
 export function ReasoningTrace({ requestId }: { requestId: bigint }) {
   const { data, isLoading, error } = useReceipt(requestId);
   const receiptUrl = getReceiptUrl(requestId);
+
+  const result = data ? extractResult(data) : null;
+  const agentReceipt = (data?.agentReceipt as Record<string, unknown>) ?? {};
+  const llmUsage = (agentReceipt.llmUsage as Record<string, unknown>) ?? {};
+  const requestDetails = (data?.requestDetails as Record<string, unknown>) ?? {};
+  const status = data?.status as string | undefined;
+  const elapsedMs = num(data?.elapsedMs);
+  const totalTokens = num(llmUsage.totalTokens);
+  const subSize = num(requestDetails.subcommitteeSize);
+  const threshold = num(requestDetails.threshold);
 
   return (
     <Card>
@@ -74,36 +68,63 @@ export function ReasoningTrace({ requestId }: { requestId: bigint }) {
           </div>
         )}
 
-        {error && (
-          <p className="text-sm text-muted-foreground">
-            Could not load receipt data.
-            <a href={receiptUrl} target="_blank" rel="noopener noreferrer" className="text-primary hover:underline ml-1">
-              View directly
-            </a>
-          </p>
-        )}
-
-        {!isLoading && !error && !data && (
+        {!isLoading && (error || !data) && (
           <p className="text-sm text-muted-foreground">
             No receipt data available yet.
             <a href={receiptUrl} target="_blank" rel="noopener noreferrer" className="text-primary hover:underline ml-1">
-              Check receipt URL
+              Check receipt
             </a>
           </p>
         )}
 
         {data && (
-          <div className="space-y-3">
-            {Object.entries(data).map(([key, value]) => {
-              if (key === "requestId" || key === "id") return null;
-              const label = FIELD_LABELS[key] ?? key;
-              return (
-                <div key={key}>
-                  <p className="text-xs font-medium text-muted-foreground mb-1">{label}</p>
-                  {renderValue(key, value)}
-                </div>
-              );
-            })}
+          <div className="space-y-4">
+            {result && (
+              <div className="space-y-3">
+                {result.verdict !== undefined && (
+                  <div className="flex flex-wrap items-center gap-2">
+                    <span className="text-xs text-muted-foreground">Verdict</span>
+                    <Badge variant={String(result.verdict).toUpperCase() === "YES" ? "default" : "secondary"}>
+                      {String(result.verdict)}
+                    </Badge>
+                    {result.confidence_score !== undefined && (
+                      <span className="text-xs text-muted-foreground">
+                        confidence {result.confidence_score}%
+                      </span>
+                    )}
+                    {result.answerable !== undefined && (
+                      <span className="text-xs text-muted-foreground">
+                        {result.answerable ? "answerable" : "not answerable"}
+                      </span>
+                    )}
+                  </div>
+                )}
+                {result.reasoning && (
+                  <div>
+                    <p className="text-xs font-medium text-muted-foreground mb-1">Reasoning</p>
+                    <p className="text-sm break-words">{result.reasoning}</p>
+                  </div>
+                )}
+              </div>
+            )}
+
+            <div className="flex flex-wrap gap-x-4 gap-y-1 text-xs text-muted-foreground border-t border-border pt-3">
+              {status && <span>status: {status}</span>}
+              {elapsedMs !== undefined && <span>{(elapsedMs / 1000).toFixed(1)}s</span>}
+              {totalTokens !== undefined && <span>{totalTokens} tokens</span>}
+              {subSize !== undefined && threshold !== undefined && (
+                <span>consensus {threshold}/{subSize}</span>
+              )}
+            </div>
+
+            {!result && (
+              <p className="text-sm text-muted-foreground">
+                Receipt loaded, but no structured result was found.
+                <a href={receiptUrl} target="_blank" rel="noopener noreferrer" className="text-primary hover:underline ml-1">
+                  View raw
+                </a>
+              </p>
+            )}
           </div>
         )}
       </CardContent>

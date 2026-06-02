@@ -199,15 +199,26 @@ cast call <DisputeArbiter>  'veritas()(address)' --rpc-url $RPC
 
 ## Receipts
 
-After a verdict resolves, fetch the AI reasoning trace:
+After a verdict resolves, fetch the AI reasoning trace. The receipts service uses
+a two-step lookup. First the index endpoint (requires the platform contract
+address) returns a list of receipt file URLs, one per subcommittee member:
 
 ```
-https://receipts.testnet.agents.somnia.host?requestId=<lastRequestId>
+https://receipts.testnet.agents.somnia.host/agent-receipts?contractAddress=<platform>&requestId=<lastRequestId>
 ```
 
-Use `getReceiptUrl(requestId)` to build this URL. The response is meant to contain the chain-of-thought reasoning, confidence score, and execution steps, and the `<ReasoningTrace>` component renders it automatically.
+Then fetch any file in the returned `receipts` array to get the full execution
+manifest. The agent's chain-of-thought lives at
+`agentReceipt.steps[].outputs.result`, for example:
 
-Note (testnet status): the documented `?requestId=` endpoint currently returns "Cannot GET /" for live request IDs, and resolved verdicts carry an on-chain receipt pointer of 0, so no receipt is retrievable yet. `<ReasoningTrace>` degrades to an empty state in this case rather than erroring. This is the one piece pending confirmation from Somnia DevRel (the receipts route and whether the Parse Website agent emits a receipt).
+```json
+{ "verdict": "YES", "confidence_score": 95, "answerable": true, "reasoning": "The context explicitly states ..." }
+```
+
+Use `getReceiptUrl(requestId)` to build the index URL. The `<ReasoningTrace>`
+component does the two-step fetch and renders the verdict, real confidence score,
+reasoning, and consensus metadata, and degrades to an empty state while a receipt
+is still propagating.
 
 ## License
 

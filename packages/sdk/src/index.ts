@@ -6,6 +6,8 @@ export { veritasAbi } from "./abis/Veritas";
 export { predictionMarketAbi } from "./abis/PredictionMarket";
 export { insuranceVaultAbi } from "./abis/InsuranceVault";
 export { disputeArbiterAbi } from "./abis/DisputeArbiter";
+import { VERITAS_ADDRESSES } from "./contracts";
+
 export {
   VERITAS_ADDRESSES,
   addresses,
@@ -26,8 +28,13 @@ export const RECEIPT_URLS = {
   mainnet: "https://receipts.mainnet.agents.somnia.host",
 } as const;
 
+/// Returns the receipts index URL for a request. The service responds with a
+/// JSON list of receipt file URLs (one per subcommittee member), each of which
+/// is the full execution manifest. The route requires the platform contract
+/// address (per Somnia DevRel): /agent-receipts?contractAddress=<platform>&requestId=<id>.
 export function getReceiptUrl(requestId: string | bigint, network: "testnet" | "mainnet" = "testnet"): string {
-  return `${RECEIPT_URLS[network]}?requestId=${requestId}`;
+  const platform = VERITAS_ADDRESSES.testnet.platform;
+  return `${RECEIPT_URLS[network]}/agent-receipts?contractAddress=${platform}&requestId=${requestId}`;
 }
 
 export function quoteVerdictSimple(): bigint {
