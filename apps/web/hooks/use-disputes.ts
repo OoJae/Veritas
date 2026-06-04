@@ -22,6 +22,16 @@ export function useNextDisputeId() {
   });
 }
 
+export function useHasClaimedBounty(disputeId: number | undefined, account: `0x${string}` | undefined) {
+  return useReadContract({
+    address: addresses.disputeArbiter,
+    abi: disputeArbiterAbi,
+    functionName: "hasClaimed",
+    args: disputeId !== undefined && account ? [BigInt(disputeId), account] : undefined,
+    query: { enabled: disputeId !== undefined && !!account },
+  });
+}
+
 export function useRaiseDispute() {
   const { writeContract, data: hash, isPending, error } = useWriteContract();
   const { isLoading: isConfirming, isSuccess } = useWaitForTransactionReceipt({ hash });

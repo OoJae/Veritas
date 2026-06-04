@@ -22,6 +22,26 @@ export function useNextPolicyId() {
   });
 }
 
+export function useIsParticipant(policyId: number | undefined, account: `0x${string}` | undefined) {
+  return useReadContract({
+    address: addresses.insuranceVault,
+    abi: insuranceVaultAbi,
+    functionName: "isParticipant",
+    args: policyId !== undefined && account ? [BigInt(policyId), account] : undefined,
+    query: { enabled: policyId !== undefined && !!account },
+  });
+}
+
+export function useHasClaimedPolicy(policyId: number | undefined, account: `0x${string}` | undefined) {
+  return useReadContract({
+    address: addresses.insuranceVault,
+    abi: insuranceVaultAbi,
+    functionName: "hasClaimed",
+    args: policyId !== undefined && account ? [BigInt(policyId), account] : undefined,
+    query: { enabled: policyId !== undefined && !!account },
+  });
+}
+
 export function useCreatePolicy() {
   const { writeContract, data: hash, isPending, error } = useWriteContract();
   const { isLoading: isConfirming, isSuccess } = useWaitForTransactionReceipt({ hash });

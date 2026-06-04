@@ -9,7 +9,7 @@ import { Label } from "@/components/ui/label";
 import { Badge } from "@/components/ui/badge";
 import { Separator } from "@/components/ui/separator";
 import { BoolBadge, VerdictStage } from "@/components/verdict-display";
-import { useGetMarket, useStakeYes, useStakeNo, useClaim } from "@/hooks/use-markets";
+import { useGetMarket, useStakeYes, useStakeNo, useClaim, useNextMarketId, useYesStake, useNoStake, useMarketClaimed } from "@/hooks/use-markets";
 import { useGetVerdict, getVerdictStageName, usePokeVerdict, useVerdictFailureReason } from "@/hooks/use-veritas";
 import { ReasoningTrace } from "@/components/reasoning-trace";
 import { formatEther } from "viem";
@@ -18,9 +18,13 @@ import { useAccount } from "wagmi";
 export default function MarketDetailPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = use(params);
   const marketId = parseInt(id);
-  const { isConnected } = useAccount();
+  const { address, isConnected } = useAccount();
 
+  const { data: nextMarketId } = useNextMarketId();
   const { data: market, refetch: refetchMarket } = useGetMarket(marketId);
+  const { data: userYesStake } = useYesStake(marketId, address);
+  const { data: userNoStake } = useNoStake(marketId, address);
+  const { data: userClaimed, refetch: refetchClaimed } = useMarketClaimed(marketId, address);
   const verdictId = market ? Number(market.verdictId) : undefined;
   const { data: verdict, refetch: refetchVerdict } = useGetVerdict(verdictId);
 
@@ -38,8 +42,29 @@ export default function MarketDetailPage({ params }: { params: Promise<{ id: str
     if (stakeYesSuccess || stakeNoSuccess || claimSuccess || pokeSuccess) {
       refetchMarket();
       refetchVerdict();
+      refetchClaimed();
     }
   }, [stakeYesSuccess, stakeNoSuccess, claimSuccess]);
+
+  const notFound = nextMarketId !== undefined && marketId >= Number(nextMarketId);
+
+  if (notFound) {
+    return (
+      <div className="min-h-screen">
+        <Navbar />
+        <main className="max-w-3xl mx-auto px-4 py-8">
+          <Card>
+            <CardHeader>
+              <CardTitle className="text-lg">Market not found</CardTitle>
+            </CardHeader>
+            <CardContent>
+              <p className="text-sm text-muted-foreground">Market #{id} does not exist.</p>
+            </CardContent>
+          </Card>
+        </main>
+      </div>
+    );
+  }
 
   if (!market) {
     return (
@@ -51,6 +76,9 @@ export default function MarketDetailPage({ params }: { params: Promise<{ id: str
       </div>
     );
   }
+
+  const winningStake = market.outcome ? (userYesStake ?? BigInt(0)) : (userNoStake ?? BigInt(0));
+  const canClaim = isConnected && winningStake > BigInt(0) && !userClaimed;
 
   const totalPool = market.yesPool + market.noPool;
   const yesPct = totalPool > BigInt(0) ? Number((market.yesPool * BigInt(100)) / totalPool) : 50;
@@ -207,15 +235,19 @@ export default function MarketDetailPage({ params }: { params: Promise<{ id: str
               </p>
             </CardContent>
             <CardFooter>
-              {isConnected ? (
+              {!isConnected ? (
+                <p className="text-sm text-muted-foreground">Connect your wallet to claim</p>
+              ) : userClaimed ? (
+                <p className="text-sm text-muted-foreground">You have already claimed your winnings.</p>
+              ) : winningStake === BigInt(0) ? (
+                <p className="text-sm text-muted-foreground">You have no stake on the winning side.</p>
+              ) : (
                 <Button
                   onClick={() => claim()}
-                  disabled={claimPending || claimConfirming}
+                  disabled={claimPending || claimConfirming || !canClaim}
                 >
                   {claimPending ? "Confirm..." : claimConfirming ? "Claiming..." : "Claim Winnings"}
                 </Button>
-              ) : (
-                <p className="text-sm text-muted-foreground">Connect your wallet to claim</p>
               )}
             </CardFooter>
           </Card>

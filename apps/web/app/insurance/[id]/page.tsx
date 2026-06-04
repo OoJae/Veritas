@@ -7,30 +7,24 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Separator } from "@/components/ui/separator";
 import { BoolBadge, VerdictStage } from "@/components/verdict-display";
-import { useGetPolicy, useJoinPolicy, useClaimPayout } from "@/hooks/use-insurance";
+import { useGetPolicy, useJoinPolicy, useClaimPayout, useNextPolicyId, useIsParticipant, useHasClaimedPolicy } from "@/hooks/use-insurance";
 import { useGetVerdict, getVerdictStageName, usePokeVerdict, useVerdictFailureReason } from "@/hooks/use-veritas";
 import { ReasoningTrace } from "@/components/reasoning-trace";
 import { formatEther } from "viem";
 import { useAccount } from "wagmi";
-import { insuranceVaultAbi, addresses } from "@veritas/agent-template";
-import { useReadContract } from "wagmi";
 
 export default function PolicyDetailPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = use(params);
   const policyId = parseInt(id);
   const { isConnected, address } = useAccount();
 
+  const { data: nextPolicyId } = useNextPolicyId();
   const { data: policy, refetch: refetchPolicy } = useGetPolicy(policyId);
   const verdictId = policy ? Number(policy.verdictId) : undefined;
   const { data: verdict } = useGetVerdict(verdictId);
 
-  const { data: isParticipant } = useReadContract({
-    address: addresses.insuranceVault,
-    abi: insuranceVaultAbi,
-    functionName: "isParticipant",
-    args: address && policy ? [BigInt(policyId), address] : undefined,
-    query: { enabled: !!address && !!policy },
-  });
+  const { data: isParticipant } = useIsParticipant(policyId, address);
+  const { data: hasClaimed, refetch: refetchClaimed } = useHasClaimedPolicy(policyId, address);
 
   const { joinPolicy, isPending: joinPending, isConfirming: joinConfirming, isSuccess: joinSuccess } = useJoinPolicy(policyId);
   const { claimPayout, isPending: claimPending, isConfirming: claimConfirming, isSuccess: claimSuccess } = useClaimPayout(policyId);
@@ -42,8 +36,29 @@ export default function PolicyDetailPage({ params }: { params: Promise<{ id: str
   useEffect(() => {
     if (joinSuccess || claimSuccess || pokeSuccess) {
       refetchPolicy();
+      refetchClaimed();
     }
   }, [joinSuccess, claimSuccess, pokeSuccess]);
+
+  const notFound = nextPolicyId !== undefined && policyId >= Number(nextPolicyId);
+
+  if (notFound) {
+    return (
+      <div className="min-h-screen">
+        <Navbar />
+        <main className="max-w-3xl mx-auto px-4 py-8">
+          <Card>
+            <CardHeader>
+              <CardTitle className="text-lg">Policy not found</CardTitle>
+            </CardHeader>
+            <CardContent>
+              <p className="text-sm text-muted-foreground">Policy #{id} does not exist.</p>
+            </CardContent>
+          </Card>
+        </main>
+      </div>
+    );
+  }
 
   if (!policy) {
     return (
@@ -179,21 +194,35 @@ export default function PolicyDetailPage({ params }: { params: Promise<{ id: str
             </CardHeader>
             <CardContent>
               <p className="text-sm text-muted-foreground">
-                The condition was met. Claim your {formatEther(policy.payoutAmount)} STT payout.
+                {hasClaimed
+                  ? "You have already claimed your payout."
+                  : `The condition was met. Claim your ${formatEther(policy.payoutAmount)} STT payout.`}
               </p>
             </CardContent>
             <CardFooter>
-              {isConnected ? (
+              {!isConnected ? (
+                <p className="text-sm text-muted-foreground">Connect your wallet to claim</p>
+              ) : hasClaimed ? (
+                <p className="text-sm text-muted-foreground">Payout claimed.</p>
+              ) : (
                 <Button
                   onClick={() => claimPayout()}
                   disabled={claimPending || claimConfirming}
                 >
                   {claimPending ? "Confirm..." : claimConfirming ? "Claiming..." : "Claim Payout"}
                 </Button>
-              ) : (
-                <p className="text-sm text-muted-foreground">Connect your wallet to claim</p>
               )}
             </CardFooter>
+          </Card>
+        )}
+
+        {policy.resolved && policy.outcome && !isParticipant && (
+          <Card>
+            <CardContent className="pt-6">
+              <p className="text-sm text-muted-foreground">
+                The condition was met, but only participants who joined before resolution can claim.
+              </p>
+            </CardContent>
           </Card>
         )}
       </main>

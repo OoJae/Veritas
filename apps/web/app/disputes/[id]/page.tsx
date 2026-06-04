@@ -9,11 +9,13 @@ import { Label } from "@/components/ui/label";
 import { Badge } from "@/components/ui/badge";
 import { Separator } from "@/components/ui/separator";
 import { VerdictStage } from "@/components/verdict-display";
-import { useGetDispute, useSubmitEvidence, useResolveDispute, useClaimBounty } from "@/hooks/use-disputes";
+import { useGetDispute, useSubmitEvidence, useResolveDispute, useClaimBounty, useNextDisputeId } from "@/hooks/use-disputes";
 import { useGetVerdict, usePokeVerdict, useVerdictFailureReason } from "@/hooks/use-veritas";
 import { ReasoningTrace } from "@/components/reasoning-trace";
 import { formatEther } from "viem";
 import { useAccount } from "wagmi";
+
+const ZERO_ADDRESS = "0x0000000000000000000000000000000000000000";
 
 function truncateAddress(addr: string) {
   return `${addr.slice(0, 6)}...${addr.slice(-4)}`;
@@ -24,6 +26,7 @@ export default function DisputeDetailPage({ params }: { params: Promise<{ id: st
   const disputeId = parseInt(id);
   const { isConnected, address } = useAccount();
 
+  const { data: nextDisputeId } = useNextDisputeId();
   const { data: dispute, refetch: refetchDispute } = useGetDispute(disputeId);
   const verdictId = dispute ? Number(dispute.verdictId) : undefined;
   const { data: verdict } = useGetVerdict(verdictId);
@@ -49,6 +52,28 @@ export default function DisputeDetailPage({ params }: { params: Promise<{ id: st
       refetchDispute();
     }
   }, [submitSuccess, resolveSuccess, claimSuccess, pokeSuccess]);
+
+  const notFound =
+    (nextDisputeId !== undefined && disputeId >= Number(nextDisputeId)) ||
+    (dispute !== undefined && dispute.claimant === ZERO_ADDRESS);
+
+  if (notFound) {
+    return (
+      <div className="min-h-screen">
+        <Navbar />
+        <main className="max-w-3xl mx-auto px-4 py-8">
+          <Card>
+            <CardHeader>
+              <CardTitle className="text-lg">Dispute not found</CardTitle>
+            </CardHeader>
+            <CardContent>
+              <p className="text-sm text-muted-foreground">Dispute #{id} does not exist.</p>
+            </CardContent>
+          </Card>
+        </main>
+      </div>
+    );
+  }
 
   if (!dispute) {
     return (

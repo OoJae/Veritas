@@ -23,6 +23,36 @@ export function useNextMarketId() {
   });
 }
 
+export function useYesStake(marketId: number | undefined, account: `0x${string}` | undefined) {
+  return useReadContract({
+    address: addresses.predictionMarket,
+    abi: predictionMarketAbi,
+    functionName: "yesStakes",
+    args: marketId !== undefined && account ? [BigInt(marketId), account] : undefined,
+    query: { enabled: marketId !== undefined && !!account },
+  });
+}
+
+export function useNoStake(marketId: number | undefined, account: `0x${string}` | undefined) {
+  return useReadContract({
+    address: addresses.predictionMarket,
+    abi: predictionMarketAbi,
+    functionName: "noStakes",
+    args: marketId !== undefined && account ? [BigInt(marketId), account] : undefined,
+    query: { enabled: marketId !== undefined && !!account },
+  });
+}
+
+export function useMarketClaimed(marketId: number | undefined, account: `0x${string}` | undefined) {
+  return useReadContract({
+    address: addresses.predictionMarket,
+    abi: predictionMarketAbi,
+    functionName: "claimed",
+    args: marketId !== undefined && account ? [BigInt(marketId), account] : undefined,
+    query: { enabled: marketId !== undefined && !!account },
+  });
+}
+
 export function useCreateMarket() {
   const { writeContract, data: hash, isPending, error } = useWriteContract();
   const { isLoading: isConfirming, isSuccess } = useWaitForTransactionReceipt({ hash });
