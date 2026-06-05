@@ -7,7 +7,7 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Separator } from "@/components/ui/separator";
 import { BoolBadge, VerdictStage } from "@/components/verdict-display";
-import { useGetPolicy, useJoinPolicy, useClaimPayout, useNextPolicyId, useIsParticipant, useHasClaimedPolicy } from "@/hooks/use-insurance";
+import { useGetPolicy, useJoinPolicy, useClaimPayout, useNextPolicyId, useIsParticipant, useHasClaimedPolicy, useTriggerResolutionPolicy } from "@/hooks/use-insurance";
 import { useGetVerdict, getVerdictStageName, usePokeVerdict, useVerdictFailureReason } from "@/hooks/use-veritas";
 import { ReasoningTrace } from "@/components/reasoning-trace";
 import { formatEther } from "viem";
@@ -28,17 +28,18 @@ export default function PolicyDetailPage({ params }: { params: Promise<{ id: str
 
   const { joinPolicy, isPending: joinPending, isConfirming: joinConfirming, isSuccess: joinSuccess } = useJoinPolicy(policyId);
   const { claimPayout, isPending: claimPending, isConfirming: claimConfirming, isSuccess: claimSuccess } = useClaimPayout(policyId);
+  const { triggerResolution, isPending: triggerPending, isConfirming: triggerConfirming, isSuccess: triggerSuccess } = useTriggerResolutionPolicy(policyId);
   const { poke, isPending: pokePending, isConfirming: pokeConfirming, isSuccess: pokeSuccess } = usePokeVerdict(verdictId ?? 0);
 
   const stage = verdict ? Number(verdict.stage) : 0;
   const failureReason = useVerdictFailureReason(verdictId, stage === 4);
 
   useEffect(() => {
-    if (joinSuccess || claimSuccess || pokeSuccess) {
+    if (joinSuccess || claimSuccess || pokeSuccess || triggerSuccess) {
       refetchPolicy();
       refetchClaimed();
     }
-  }, [joinSuccess, claimSuccess, pokeSuccess]);
+  }, [joinSuccess, claimSuccess, pokeSuccess, triggerSuccess]);
 
   const notFound = nextPolicyId !== undefined && policyId >= Number(nextPolicyId);
 
@@ -70,6 +71,12 @@ export default function PolicyDetailPage({ params }: { params: Promise<{ id: str
       </div>
     );
   }
+
+  const nowSec = BigInt(Math.floor(Date.now() / 1000));
+  const notTriggered = policy.verdictId === BigInt(0) && !policy.resolved;
+  const joinOpen = notTriggered && nowSec < policy.resolveAfter;
+  const canTrigger = notTriggered && nowSec >= policy.resolveAfter;
+  const resolveDate = new Date(Number(policy.resolveAfter) * 1000);
 
   return (
     <div className="min-h-screen">
@@ -153,14 +160,36 @@ export default function PolicyDetailPage({ params }: { params: Promise<{ id: str
           </Card>
         )}
 
-        {!policy.resolved && !isParticipant && (
+        {canTrigger && (
+          <Card>
+            <CardHeader>
+              <CardTitle className="text-lg">Trigger Resolution</CardTitle>
+            </CardHeader>
+            <CardContent>
+              <p className="text-sm text-muted-foreground">
+                The join window has closed. Anyone can trigger the AI verdict by paying the resolution fee.
+              </p>
+            </CardContent>
+            <CardFooter>
+              {isConnected ? (
+                <Button onClick={() => triggerResolution()} disabled={triggerPending || triggerConfirming}>
+                  {triggerPending ? "Confirm..." : triggerConfirming ? "Resolving..." : "Trigger Resolution"}
+                </Button>
+              ) : (
+                <p className="text-sm text-muted-foreground">Connect your wallet to trigger resolution</p>
+              )}
+            </CardFooter>
+          </Card>
+        )}
+
+        {joinOpen && !isParticipant && (
           <Card>
             <CardHeader>
               <CardTitle className="text-lg">Join Policy</CardTitle>
             </CardHeader>
             <CardContent>
               <p className="text-sm text-muted-foreground">
-                Pay {formatEther(policy.premium)} STT to join this policy.
+                Pay {formatEther(policy.premium)} STT to join this policy (open until {resolveDate.toLocaleString()}).
                 If the condition is met, you receive {formatEther(policy.payoutAmount)} STT.
               </p>
             </CardContent>

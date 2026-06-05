@@ -14,6 +14,8 @@ contract PredictionMarketTest is Test {
     Veritas public veritas;
     PredictionMarket public market;
 
+    uint256 constant BETTING = 1 hours;
+
     address public alice = address(0xA11CE);
     address public bob = address(0xB0B);
 
@@ -32,44 +34,39 @@ contract PredictionMarketTest is Test {
         vm.deal(bob, 100 ether);
     }
 
-    function test_createMarket_and_stake() public {
-        string[] memory urls = new string[](1);
+    function _urls() internal pure returns (string[] memory urls) {
+        urls = new string[](1);
         urls[0] = "https://example.com";
+    }
 
-        uint256 marketId = market.createMarket{value: 1 ether}(
-            "Will it rain tomorrow?",
-            urls
-        );
-
-        assertEq(marketId, 0);
-
+    function _createAndStake(uint256 yesAmt, uint256 noAmt) internal returns (uint256 marketId) {
+        marketId = market.createMarket("Will it rain tomorrow?", _urls(), BETTING);
         vm.prank(alice);
-        market.stakeYes{value: 1 ether}(marketId);
-
+        market.stakeYes{value: yesAmt}(marketId);
         vm.prank(bob);
-        market.stakeNo{value: 2 ether}(marketId);
+        market.stakeNo{value: noAmt}(marketId);
+    }
+
+    function _trigger(uint256 marketId) internal {
+        vm.warp(block.timestamp + BETTING + 1);
+        market.triggerResolution{value: 0.33 ether}(marketId);
+    }
+
+    function test_createMarket_and_stake() public {
+        uint256 marketId = _createAndStake(1 ether, 2 ether);
+        assertEq(marketId, 0);
 
         PredictionMarket.Market memory m = market.getMarket(marketId);
         assertEq(m.yesPool, 1 ether);
         assertEq(m.noPool, 2 ether);
+        assertEq(m.verdictId, 0); // verdict not yet requested
     }
 
     function test_fullFlow_yesWins() public {
-        string[] memory urls = new string[](1);
-        urls[0] = "https://example.com";
+        uint256 marketId = _createAndStake(1 ether, 1 ether);
+        _trigger(marketId);
 
-        uint256 marketId = market.createMarket{value: 1 ether}(
-            "Will it rain tomorrow?",
-            urls
-        );
-
-        vm.prank(alice);
-        market.stakeYes{value: 1 ether}(marketId);
-        vm.prank(bob);
-        market.stakeNo{value: 1 ether}(marketId);
-
-        bytes memory yesResult = abi.encode("YES");
-        platform.simulateResponse(1, yesResult, 42);
+        platform.simulateResponse(1, abi.encode("YES"), 42);
 
         PredictionMarket.Market memory m = market.getMarket(marketId);
         assertTrue(m.resolved);
@@ -86,21 +83,10 @@ contract PredictionMarketTest is Test {
     }
 
     function test_fullFlow_noWins() public {
-        string[] memory urls = new string[](1);
-        urls[0] = "https://example.com";
+        uint256 marketId = _createAndStake(3 ether, 1 ether);
+        _trigger(marketId);
 
-        uint256 marketId = market.createMarket{value: 1 ether}(
-            "Is the earth flat?",
-            urls
-        );
-
-        vm.prank(alice);
-        market.stakeYes{value: 3 ether}(marketId);
-        vm.prank(bob);
-        market.stakeNo{value: 1 ether}(marketId);
-
-        bytes memory noResult = abi.encode("NO");
-        platform.simulateResponse(1, noResult, 99);
+        platform.simulateResponse(1, abi.encode("NO"), 99);
 
         PredictionMarket.Market memory m = market.getMarket(marketId);
         assertTrue(m.resolved);
@@ -112,31 +98,36 @@ contract PredictionMarketTest is Test {
         assertEq(bob.balance - bobBalBefore, 4 ether);
     }
 
-    function test_cannotStakeAfterResolved() public {
-        string[] memory urls = new string[](1);
-        urls[0] = "https://example.com";
-
-        uint256 marketId = market.createMarket{value: 1 ether}("q", urls);
-
-        bytes memory yesResult = abi.encode("YES");
-        platform.simulateResponse(1, yesResult, 1);
+    function test_cannotStakeAfterDeadline() public {
+        uint256 marketId = market.createMarket("q", _urls(), BETTING);
+        vm.warp(block.timestamp + BETTING + 1);
 
         vm.prank(alice);
-        vm.expectRevert("already resolved");
+        vm.expectRevert("betting closed");
         market.stakeYes{value: 1 ether}(marketId);
     }
 
+    function test_cannotTriggerBeforeDeadline() public {
+        uint256 marketId = market.createMarket("q", _urls(), BETTING);
+        vm.expectRevert("betting still open");
+        market.triggerResolution{value: 0.33 ether}(marketId);
+    }
+
+    function test_cannotTriggerTwice() public {
+        uint256 marketId = _createAndStake(1 ether, 1 ether);
+        _trigger(marketId);
+
+        vm.expectRevert("already triggered");
+        market.triggerResolution{value: 0.33 ether}(marketId);
+    }
+
     function test_cannotClaimTwice() public {
-        string[] memory urls = new string[](1);
-        urls[0] = "https://example.com";
-
-        uint256 marketId = market.createMarket{value: 1 ether}("q", urls);
-
+        uint256 marketId = market.createMarket("q", _urls(), BETTING);
         vm.prank(alice);
         market.stakeYes{value: 1 ether}(marketId);
+        _trigger(marketId);
 
-        bytes memory yesResult = abi.encode("YES");
-        platform.simulateResponse(1, yesResult, 1);
+        platform.simulateResponse(1, abi.encode("YES"), 1);
 
         vm.prank(alice);
         market.claim(marketId);

@@ -10,6 +10,7 @@ import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { useCreatePolicy } from "@/hooks/use-insurance";
 import { isScrapeableUrl, looksLikeRawApi } from "@/lib/evidence";
+import { WINDOW_PRESETS, DEFAULT_WINDOW_SECONDS } from "@/lib/windows";
 import { quoteVerdictSimple } from "@veritas/agent-template";
 import { formatEther } from "viem";
 import { useAccount } from "wagmi";
@@ -24,6 +25,7 @@ export default function CreatePolicyPage() {
   const [premium, setPremium] = useState("0.1");
   const [payout, setPayout] = useState("0.5");
   const [maxParticipants, setMaxParticipants] = useState("5");
+  const [windowSeconds, setWindowSeconds] = useState(DEFAULT_WINDOW_SECONDS);
 
   const cost = formatEther(quoteVerdictSimple());
   const urlValid = isScrapeableUrl(evidenceUrl);
@@ -31,7 +33,7 @@ export default function CreatePolicyPage() {
   function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
     if (!urlValid) return;
-    createPolicy(question, [evidenceUrl.trim()], premium, payout, parseInt(maxParticipants));
+    createPolicy(question, [evidenceUrl.trim()], premium, payout, parseInt(maxParticipants), windowSeconds);
   }
 
   if (isSuccess) {
@@ -139,10 +141,27 @@ export default function CreatePolicyPage() {
                   required
                 />
               </div>
+              <div className="space-y-2">
+                <Label htmlFor="window">Join window</Label>
+                <select
+                  id="window"
+                  className="w-full rounded-md border border-input bg-background px-3 py-2 text-sm"
+                  value={windowSeconds}
+                  onChange={(e) => setWindowSeconds(Number(e.target.value))}
+                >
+                  {WINDOW_PRESETS.map((p) => (
+                    <option key={p.seconds} value={p.seconds}>{p.label}</option>
+                  ))}
+                </select>
+                <p className="text-xs text-muted-foreground">
+                  How long participants can join before the policy can be resolved.
+                </p>
+              </div>
               <div className="rounded-lg bg-secondary p-3 text-sm">
-                <p>Verdict cost: <span className="font-semibold">{cost} STT</span></p>
+                <p>Resolution fee: <span className="font-semibold">{cost} STT</span></p>
                 <p className="text-muted-foreground text-xs mt-1">
-                  You fund the AI verdict request. Participants pay the premium to join.
+                  Creating is free. Participants pay the premium to join. After the join
+                  window closes, anyone can trigger resolution by paying this fee.
                 </p>
               </div>
             </CardContent>

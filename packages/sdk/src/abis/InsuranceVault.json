@@ -55,6 +55,11 @@
         "name": "maxParticipants",
         "type": "uint256",
         "internalType": "uint256"
+      },
+      {
+        "name": "joinDuration",
+        "type": "uint256",
+        "internalType": "uint256"
       }
     ],
     "outputs": [
@@ -64,7 +69,7 @@
         "internalType": "uint256"
       }
     ],
-    "stateMutability": "payable"
+    "stateMutability": "nonpayable"
   },
   {
     "type": "function",
@@ -155,6 +160,11 @@
             "name": "creator",
             "type": "address",
             "internalType": "address"
+          },
+          {
+            "name": "resolveAfter",
+            "type": "uint256",
+            "internalType": "uint256"
           }
         ]
       }
@@ -295,6 +305,11 @@
         "name": "creator",
         "type": "address",
         "internalType": "address"
+      },
+      {
+        "name": "resolveAfter",
+        "type": "uint256",
+        "internalType": "uint256"
       }
     ],
     "stateMutability": "view"
@@ -311,6 +326,19 @@
     ],
     "outputs": [],
     "stateMutability": "nonpayable"
+  },
+  {
+    "type": "function",
+    "name": "triggerResolution",
+    "inputs": [
+      {
+        "name": "policyId",
+        "type": "uint256",
+        "internalType": "uint256"
+      }
+    ],
+    "outputs": [],
+    "stateMutability": "payable"
   },
   {
     "type": "function",
@@ -377,6 +405,12 @@
         "type": "uint256",
         "indexed": false,
         "internalType": "uint256"
+      },
+      {
+        "name": "resolveAfter",
+        "type": "uint256",
+        "indexed": false,
+        "internalType": "uint256"
       }
     ],
     "anonymous": false
@@ -420,6 +454,25 @@
     "anonymous": false
   },
   {
+    "type": "event",
+    "name": "ResolutionTriggered",
+    "inputs": [
+      {
+        "name": "policyId",
+        "type": "uint256",
+        "indexed": true,
+        "internalType": "uint256"
+      },
+      {
+        "name": "verdictId",
+        "type": "uint256",
+        "indexed": false,
+        "internalType": "uint256"
+      }
+    ],
+    "anonymous": false
+  },
+  {
     "type": "error",
     "name": "AlreadyClaimed",
     "inputs": []
@@ -431,7 +484,22 @@
   },
   {
     "type": "error",
+    "name": "AlreadyTriggered",
+    "inputs": []
+  },
+  {
+    "type": "error",
     "name": "InsufficientPremium",
+    "inputs": []
+  },
+  {
+    "type": "error",
+    "name": "JoinWindowClosed",
+    "inputs": []
+  },
+  {
+    "type": "error",
+    "name": "JoinWindowOpen",
     "inputs": []
   },
   {

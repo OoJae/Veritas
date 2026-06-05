@@ -21,6 +21,7 @@ contract InsuranceVault {
         bool outcome;
         uint256 createdAt;
         address creator;
+        uint256 resolveAfter;
     }
 
     uint256 public nextPolicyId;
@@ -29,8 +30,9 @@ contract InsuranceVault {
     mapping(uint256 => address[]) internal participantList;
     mapping(uint256 => mapping(address => bool)) public hasClaimed;
 
-    event PolicyCreated(uint256 indexed policyId, string question, uint256 premium, uint256 payoutAmount);
+    event PolicyCreated(uint256 indexed policyId, string question, uint256 premium, uint256 payoutAmount, uint256 resolveAfter);
     event PolicyJoined(uint256 indexed policyId, address indexed participant);
+    event ResolutionTriggered(uint256 indexed policyId, uint256 verdictId);
     event PolicyResolved(uint256 indexed policyId, bool outcome);
     event PayoutClaimed(uint256 indexed policyId, address indexed participant, uint256 amount);
 
@@ -42,20 +44,48 @@ contract InsuranceVault {
     error AlreadyClaimed();
     error NotParticipant();
     error InsufficientPremium();
+    error JoinWindowClosed();
+    error JoinWindowOpen();
+    error AlreadyTriggered();
 
     constructor(address _veritas) {
         veritas = IVeritas(_veritas);
     }
 
-    /// @notice Create a new insurance policy and fund the Veritas verdict request.
+    /// @notice Open a policy with a join window. Free: the Veritas verdict is not
+    ///         requested here, it is fired by triggerResolution after the deadline.
     function createPolicy(
         string calldata question,
         string[] calldata evidenceUrls,
         uint256 premium,
         uint256 payoutAmount,
-        uint256 maxParticipants
-    ) external payable returns (uint256 policyId) {
+        uint256 maxParticipants,
+        uint256 joinDuration
+    ) external returns (uint256 policyId) {
         policyId = nextPolicyId++;
+
+        Policy storage p = policies[policyId];
+        p.question = question;
+        for (uint256 i = 0; i < evidenceUrls.length; i++) {
+            p.evidenceUrls.push(evidenceUrls[i]);
+        }
+        p.premium = premium;
+        p.payoutAmount = payoutAmount;
+        p.maxParticipants = maxParticipants;
+        p.createdAt = block.timestamp;
+        p.creator = msg.sender;
+        p.resolveAfter = block.timestamp + joinDuration;
+
+        emit PolicyCreated(policyId, question, premium, payoutAmount, p.resolveAfter);
+    }
+
+    /// @notice After the join window closes, anyone can fire the AI verdict by
+    ///         paying the Veritas fee. Veritas calls resolvePolicy on resolution.
+    function triggerResolution(uint256 policyId) external payable {
+        Policy storage p = policies[policyId];
+        if (block.timestamp < p.resolveAfter) revert JoinWindowOpen();
+        if (p.verdictId != 0) revert AlreadyTriggered();
+        if (p.resolved) revert PolicyAlreadyResolved();
 
         bytes memory payoutCalldata = abi.encodeWithSelector(
             InsuranceVault.resolvePolicy.selector,
@@ -63,33 +93,21 @@ contract InsuranceVault {
         );
 
         uint256 verdictId = veritas.requestVerdict{value: msg.value}(
-            question,
-            evidenceUrls,
+            p.question,
+            p.evidenceUrls,
             VerdictMode.Simple,
             address(this),
             payoutCalldata
         );
 
-        policies[policyId] = Policy({
-            question: question,
-            evidenceUrls: evidenceUrls,
-            premium: premium,
-            payoutAmount: payoutAmount,
-            maxParticipants: maxParticipants,
-            participantCount: 0,
-            verdictId: verdictId,
-            resolved: false,
-            outcome: false,
-            createdAt: block.timestamp,
-            creator: msg.sender
-        });
-
-        emit PolicyCreated(policyId, question, premium, payoutAmount);
+        p.verdictId = verdictId;
+        emit ResolutionTriggered(policyId, verdictId);
     }
 
-    /// @notice Buy into a policy by paying the premium.
+    /// @notice Buy into a policy by paying the premium. Only while join is open.
     function joinPolicy(uint256 policyId) external payable {
         Policy storage p = policies[policyId];
+        if (block.timestamp >= p.resolveAfter) revert JoinWindowClosed();
         if (p.resolved) revert PolicyAlreadyResolved();
         if (p.participantCount >= p.maxParticipants) revert PolicyFull();
         if (isParticipant[policyId][msg.sender]) revert AlreadyJoined();

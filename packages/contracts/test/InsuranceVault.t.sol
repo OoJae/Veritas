@@ -14,6 +14,8 @@ contract InsuranceVaultTest is Test {
     Veritas public veritas;
     InsuranceVault public vault;
 
+    uint256 constant JOIN = 1 hours;
+
     address public alice = address(0xA11CE);
     address public bob = address(0xB0B);
     address public carol = address(0xCA);
@@ -28,6 +30,7 @@ contract InsuranceVaultTest is Test {
         veritas = new Veritas(address(platform));
         vault = new InsuranceVault(address(veritas));
 
+        vm.deal(address(this), 100 ether);
         vm.deal(address(veritas), 100 ether);
         vm.deal(address(vault), 100 ether);
         vm.deal(alice, 100 ether);
@@ -39,13 +42,20 @@ contract InsuranceVaultTest is Test {
         string[] memory urls = new string[](1);
         urls[0] = "https://weather.example.com/nyc-rain";
 
-        policyId = vault.createPolicy{value: 0.33 ether}(
+        policyId = vault.createPolicy(
             "Did it rain more than 2 inches in NYC on May 25?",
             urls,
             0.1 ether,   // premium
             0.5 ether,   // payout
-            3            // max participants
+            3,           // max participants
+            JOIN         // join window
         );
+    }
+
+    function _resolve(string memory answer) internal {
+        vm.warp(block.timestamp + JOIN + 1);
+        vault.triggerResolution{value: 0.33 ether}(0);
+        platform.simulateResponse(1, abi.encode(answer), 42);
     }
 
     function test_createPolicy() public {
@@ -56,8 +66,8 @@ contract InsuranceVaultTest is Test {
         assertEq(p.payoutAmount, 0.5 ether);
         assertEq(p.maxParticipants, 3);
         assertEq(p.participantCount, 0);
+        assertEq(p.verdictId, 0);
         assertFalse(p.resolved);
-        assertFalse(p.outcome);
         assertEq(p.creator, address(this));
     }
 
@@ -66,7 +76,6 @@ contract InsuranceVaultTest is Test {
 
         vm.prank(alice);
         vault.joinPolicy{value: 0.1 ether}(policyId);
-
         vm.prank(bob);
         vault.joinPolicy{value: 0.1 ether}(policyId);
 
@@ -83,9 +92,7 @@ contract InsuranceVaultTest is Test {
         vm.prank(alice);
         vault.joinPolicy{value: 0.2 ether}(policyId);
 
-        // Alice should get 0.1 ether refund (paid 0.2, premium 0.1)
-        uint256 balanceAfter = alice.balance;
-        assertEq(balanceBefore - balanceAfter, 0.1 ether);
+        assertEq(balanceBefore - alice.balance, 0.1 ether);
     }
 
     function test_joinPolicy_full() public {
@@ -98,7 +105,6 @@ contract InsuranceVaultTest is Test {
         vm.prank(carol);
         vault.joinPolicy{value: 0.1 ether}(policyId);
 
-        // 4th participant should fail
         address dave = address(0xD4DE);
         vm.deal(dave, 100 ether);
         vm.prank(dave);
@@ -109,7 +115,6 @@ contract InsuranceVaultTest is Test {
     function test_fullFlow_yesOutcome() public {
         uint256 policyId = _createPolicy();
 
-        // 3 users join
         vm.prank(alice);
         vault.joinPolicy{value: 0.1 ether}(policyId);
         vm.prank(bob);
@@ -117,14 +122,12 @@ contract InsuranceVaultTest is Test {
         vm.prank(carol);
         vault.joinPolicy{value: 0.1 ether}(policyId);
 
-        // Resolve with YES verdict (requestId 1)
-        platform.simulateResponse(1, abi.encode("YES"), 42);
+        _resolve("YES");
 
         InsuranceVault.Policy memory p = vault.getPolicy(policyId);
         assertTrue(p.resolved);
         assertTrue(p.outcome);
 
-        // Each user claims payout
         uint256 aliceBefore = alice.balance;
         vm.prank(alice);
         vault.claimPayout(policyId);
@@ -149,14 +152,12 @@ contract InsuranceVaultTest is Test {
         vm.prank(bob);
         vault.joinPolicy{value: 0.1 ether}(policyId);
 
-        // Resolve with NO verdict
-        platform.simulateResponse(1, abi.encode("NO"), 42);
+        _resolve("NO");
 
         InsuranceVault.Policy memory p = vault.getPolicy(policyId);
         assertTrue(p.resolved);
         assertFalse(p.outcome);
 
-        // Claim should fail -- no payout on NO
         vm.prank(alice);
         vm.expectRevert(InsuranceVault.NoPayout.selector);
         vault.claimPayout(policyId);
@@ -168,8 +169,7 @@ contract InsuranceVaultTest is Test {
         vm.prank(alice);
         vault.joinPolicy{value: 0.1 ether}(policyId);
 
-        // Resolve YES
-        platform.simulateResponse(1, abi.encode("YES"), 42);
+        _resolve("YES");
 
         vm.prank(alice);
         vault.claimPayout(policyId);
@@ -179,14 +179,12 @@ contract InsuranceVaultTest is Test {
         vault.claimPayout(policyId);
     }
 
-    function test_cannotJoinAfterResolved() public {
+    function test_cannotJoinAfterDeadline() public {
         uint256 policyId = _createPolicy();
-
-        // Resolve immediately (no participants)
-        platform.simulateResponse(1, abi.encode("YES"), 42);
+        vm.warp(block.timestamp + JOIN + 1);
 
         vm.prank(alice);
-        vm.expectRevert(InsuranceVault.PolicyAlreadyResolved.selector);
+        vm.expectRevert(InsuranceVault.JoinWindowClosed.selector);
         vault.joinPolicy{value: 0.1 ether}(policyId);
     }
 
@@ -199,5 +197,20 @@ contract InsuranceVaultTest is Test {
         vm.prank(alice);
         vm.expectRevert(InsuranceVault.AlreadyJoined.selector);
         vault.joinPolicy{value: 0.1 ether}(policyId);
+    }
+
+    function test_cannotTriggerBeforeDeadline() public {
+        _createPolicy();
+        vm.expectRevert(InsuranceVault.JoinWindowOpen.selector);
+        vault.triggerResolution{value: 0.33 ether}(0);
+    }
+
+    function test_cannotTriggerTwice() public {
+        _createPolicy();
+        vm.warp(block.timestamp + JOIN + 1);
+        vault.triggerResolution{value: 0.33 ether}(0);
+
+        vm.expectRevert(InsuranceVault.AlreadyTriggered.selector);
+        vault.triggerResolution{value: 0.33 ether}(0);
     }
 }

@@ -10,6 +10,7 @@ import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { useCreateMarket } from "@/hooks/use-markets";
 import { isScrapeableUrl, looksLikeRawApi } from "@/lib/evidence";
+import { WINDOW_PRESETS, DEFAULT_WINDOW_SECONDS } from "@/lib/windows";
 import { quoteVerdictSimple } from "@veritas/agent-template";
 import { formatEther } from "viem";
 import { useAccount } from "wagmi";
@@ -21,6 +22,7 @@ export default function CreateMarketPage() {
 
   const [question, setQuestion] = useState("");
   const [evidenceUrl, setEvidenceUrl] = useState("");
+  const [windowSeconds, setWindowSeconds] = useState(DEFAULT_WINDOW_SECONDS);
 
   const cost = formatEther(quoteVerdictSimple());
   const urlValid = isScrapeableUrl(evidenceUrl);
@@ -28,7 +30,7 @@ export default function CreateMarketPage() {
   function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
     if (!urlValid) return;
-    createMarket(question, [evidenceUrl.trim()]);
+    createMarket(question, [evidenceUrl.trim()], windowSeconds);
   }
 
   if (isSuccess) {
@@ -61,7 +63,8 @@ export default function CreateMarketPage() {
           <CardHeader>
             <CardTitle>Create Prediction Market</CardTitle>
             <CardDescription>
-              Ask a yes/no question that can be verified by AI. Stake {cost} STT for the verdict.
+              Ask a yes/no question that can be verified by AI. Creating is free: betting
+              stays open for the window you choose, then anyone can trigger AI resolution.
             </CardDescription>
           </CardHeader>
           <form onSubmit={handleSubmit}>
@@ -102,10 +105,27 @@ export default function CreateMarketPage() {
                   </p>
                 )}
               </div>
+              <div className="space-y-2">
+                <Label htmlFor="window">Betting window</Label>
+                <select
+                  id="window"
+                  className="w-full rounded-md border border-input bg-background px-3 py-2 text-sm"
+                  value={windowSeconds}
+                  onChange={(e) => setWindowSeconds(Number(e.target.value))}
+                >
+                  {WINDOW_PRESETS.map((p) => (
+                    <option key={p.seconds} value={p.seconds}>{p.label}</option>
+                  ))}
+                </select>
+                <p className="text-xs text-muted-foreground">
+                  How long staking stays open before the market can be resolved.
+                </p>
+              </div>
               <div className="rounded-lg bg-secondary p-3 text-sm">
-                <p>Verdict cost: <span className="font-semibold">{cost} STT</span></p>
+                <p>Resolution fee: <span className="font-semibold">{cost} STT</span></p>
                 <p className="text-muted-foreground text-xs mt-1">
-                  This funds the AI agents that will evaluate evidence and determine the outcome
+                  Paid when the market is resolved (not now). After the window closes,
+                  anyone can trigger resolution by paying this fee.
                 </p>
               </div>
             </CardContent>

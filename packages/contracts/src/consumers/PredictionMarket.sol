@@ -12,12 +12,14 @@ contract PredictionMarket {
 
     struct Market {
         string question;
+        string[] evidenceUrls;
         uint256 verdictId;
         uint256 yesPool;
         uint256 noPool;
         bool resolved;
         bool outcome;
         uint256 createdAt;
+        uint256 resolveAfter;
     }
 
     uint256 public nextMarketId;
@@ -26,8 +28,9 @@ contract PredictionMarket {
     mapping(uint256 => mapping(address => uint256)) public noStakes;
     mapping(uint256 => mapping(address => bool)) public claimed;
 
-    event MarketCreated(uint256 indexed marketId, string question);
+    event MarketCreated(uint256 indexed marketId, string question, uint256 resolveAfter);
     event StakePlaced(uint256 indexed marketId, address indexed user, bool side, uint256 amount);
+    event ResolutionTriggered(uint256 indexed marketId, uint256 verdictId);
     event MarketResolved(uint256 indexed marketId, bool outcome);
     event WinningsClaimed(uint256 indexed marketId, address indexed user, uint256 amount);
 
@@ -35,42 +38,31 @@ contract PredictionMarket {
         veritas = IVeritas(_veritas);
     }
 
-    /// @notice Create a new market and fund the Veritas verdict request.
+    /// @notice Open a market with a betting window. Free: the Veritas verdict is
+    ///         not requested here, it is fired by triggerResolution after the
+    ///         deadline. Staking is open until block.timestamp >= resolveAfter.
     function createMarket(
         string calldata question,
-        string[] calldata evidenceUrls
-    ) external payable returns (uint256 marketId) {
+        string[] calldata evidenceUrls,
+        uint256 bettingDuration
+    ) external returns (uint256 marketId) {
         marketId = nextMarketId++;
 
-        bytes memory payoutCalldata = abi.encodeWithSelector(
-            PredictionMarket.resolveMarket.selector,
-            marketId
-        );
+        Market storage m = markets[marketId];
+        m.question = question;
+        for (uint256 i = 0; i < evidenceUrls.length; i++) {
+            m.evidenceUrls.push(evidenceUrls[i]);
+        }
+        m.createdAt = block.timestamp;
+        m.resolveAfter = block.timestamp + bettingDuration;
 
-        uint256 verdictId = veritas.requestVerdict{value: msg.value}(
-            question,
-            evidenceUrls,
-            VerdictMode.Simple,
-            address(this),
-            payoutCalldata
-        );
-
-        markets[marketId] = Market({
-            question: question,
-            verdictId: verdictId,
-            yesPool: 0,
-            noPool: 0,
-            resolved: false,
-            outcome: false,
-            createdAt: block.timestamp
-        });
-
-        emit MarketCreated(marketId, question);
+        emit MarketCreated(marketId, question, m.resolveAfter);
     }
 
-    /// @notice Stake YES on a market.
+    /// @notice Stake YES on a market. Only while the betting window is open.
     function stakeYes(uint256 marketId) external payable {
         Market storage m = markets[marketId];
+        require(block.timestamp < m.resolveAfter, "betting closed");
         require(!m.resolved, "already resolved");
         require(msg.value > 0, "zero stake");
 
@@ -79,15 +71,41 @@ contract PredictionMarket {
         emit StakePlaced(marketId, msg.sender, true, msg.value);
     }
 
-    /// @notice Stake NO on a market.
+    /// @notice Stake NO on a market. Only while the betting window is open.
     function stakeNo(uint256 marketId) external payable {
         Market storage m = markets[marketId];
+        require(block.timestamp < m.resolveAfter, "betting closed");
         require(!m.resolved, "already resolved");
         require(msg.value > 0, "zero stake");
 
         m.noPool += msg.value;
         noStakes[marketId][msg.sender] += msg.value;
         emit StakePlaced(marketId, msg.sender, false, msg.value);
+    }
+
+    /// @notice After the betting window closes, anyone can fire the AI verdict by
+    ///         paying the Veritas fee. Veritas calls resolveMarket on resolution.
+    function triggerResolution(uint256 marketId) external payable {
+        Market storage m = markets[marketId];
+        require(block.timestamp >= m.resolveAfter, "betting still open");
+        require(m.verdictId == 0, "already triggered");
+        require(!m.resolved, "already resolved");
+
+        bytes memory payoutCalldata = abi.encodeWithSelector(
+            PredictionMarket.resolveMarket.selector,
+            marketId
+        );
+
+        uint256 verdictId = veritas.requestVerdict{value: msg.value}(
+            m.question,
+            m.evidenceUrls,
+            VerdictMode.Simple,
+            address(this),
+            payoutCalldata
+        );
+
+        m.verdictId = verdictId;
+        emit ResolutionTriggered(marketId, verdictId);
     }
 
     /// @notice Called by Veritas when the verdict resolves. Sets the outcome.

@@ -1,155 +1,448 @@
 export const predictionMarketAbi = [
   {
-    type: "constructor",
-    inputs: [{ name: "_veritas", type: "address", internalType: "address" }],
-    stateMutability: "nonpayable",
-  },
-  { type: "receive", stateMutability: "payable" },
-  {
-    type: "function",
-    name: "createMarket",
-    inputs: [
-      { name: "question", type: "string" },
-      { name: "evidenceUrls", type: "string[]" },
-    ],
-    outputs: [{ name: "marketId", type: "uint256" }],
-    stateMutability: "payable",
-  },
-  {
-    type: "function",
-    name: "getMarket",
-    inputs: [{ name: "marketId", type: "uint256" }],
-    outputs: [
+    "type": "constructor",
+    "inputs": [
       {
-        name: "",
-        type: "tuple",
-        internalType: "struct PredictionMarket.Market",
-        components: [
-          { name: "question", type: "string" },
-          { name: "verdictId", type: "uint256" },
-          { name: "yesPool", type: "uint256" },
-          { name: "noPool", type: "uint256" },
-          { name: "resolved", type: "bool" },
-          { name: "outcome", type: "bool" },
-          { name: "createdAt", type: "uint256" },
-        ],
+        "name": "_veritas",
+        "type": "address",
+        "internalType": "address"
+      }
+    ],
+    "stateMutability": "nonpayable"
+  },
+  {
+    "type": "receive",
+    "stateMutability": "payable"
+  },
+  {
+    "type": "function",
+    "name": "claim",
+    "inputs": [
+      {
+        "name": "marketId",
+        "type": "uint256",
+        "internalType": "uint256"
+      }
+    ],
+    "outputs": [],
+    "stateMutability": "nonpayable"
+  },
+  {
+    "type": "function",
+    "name": "claimed",
+    "inputs": [
+      {
+        "name": "",
+        "type": "uint256",
+        "internalType": "uint256"
       },
+      {
+        "name": "",
+        "type": "address",
+        "internalType": "address"
+      }
     ],
-    stateMutability: "view",
-  },
-  {
-    type: "function",
-    name: "stakeYes",
-    inputs: [{ name: "marketId", type: "uint256" }],
-    outputs: [],
-    stateMutability: "payable",
-  },
-  {
-    type: "function",
-    name: "stakeNo",
-    inputs: [{ name: "marketId", type: "uint256" }],
-    outputs: [],
-    stateMutability: "payable",
-  },
-  {
-    type: "function",
-    name: "claim",
-    inputs: [{ name: "marketId", type: "uint256" }],
-    outputs: [],
-    stateMutability: "nonpayable",
-  },
-  {
-    type: "function",
-    name: "resolveMarket",
-    inputs: [{ name: "marketId", type: "uint256" }],
-    outputs: [],
-    stateMutability: "nonpayable",
-  },
-  {
-    type: "function",
-    name: "nextMarketId",
-    inputs: [],
-    outputs: [{ name: "", type: "uint256" }],
-    stateMutability: "view",
-  },
-  {
-    type: "function",
-    name: "markets",
-    inputs: [{ name: "", type: "uint256" }],
-    outputs: [
-      { name: "question", type: "string" },
-      { name: "verdictId", type: "uint256" },
-      { name: "yesPool", type: "uint256" },
-      { name: "noPool", type: "uint256" },
-      { name: "resolved", type: "bool" },
-      { name: "outcome", type: "bool" },
-      { name: "createdAt", type: "uint256" },
+    "outputs": [
+      {
+        "name": "",
+        "type": "bool",
+        "internalType": "bool"
+      }
     ],
-    stateMutability: "view",
+    "stateMutability": "view"
   },
   {
-    type: "function",
-    name: "yesStakes",
-    inputs: [
-      { name: "", type: "uint256" },
-      { name: "", type: "address" },
+    "type": "function",
+    "name": "createMarket",
+    "inputs": [
+      {
+        "name": "question",
+        "type": "string",
+        "internalType": "string"
+      },
+      {
+        "name": "evidenceUrls",
+        "type": "string[]",
+        "internalType": "string[]"
+      },
+      {
+        "name": "bettingDuration",
+        "type": "uint256",
+        "internalType": "uint256"
+      }
     ],
-    outputs: [{ name: "", type: "uint256" }],
-    stateMutability: "view",
+    "outputs": [
+      {
+        "name": "marketId",
+        "type": "uint256",
+        "internalType": "uint256"
+      }
+    ],
+    "stateMutability": "nonpayable"
   },
   {
-    type: "function",
-    name: "noStakes",
-    inputs: [
-      { name: "", type: "uint256" },
-      { name: "", type: "address" },
+    "type": "function",
+    "name": "getMarket",
+    "inputs": [
+      {
+        "name": "marketId",
+        "type": "uint256",
+        "internalType": "uint256"
+      }
     ],
-    outputs: [{ name: "", type: "uint256" }],
-    stateMutability: "view",
+    "outputs": [
+      {
+        "name": "",
+        "type": "tuple",
+        "internalType": "struct PredictionMarket.Market",
+        "components": [
+          {
+            "name": "question",
+            "type": "string",
+            "internalType": "string"
+          },
+          {
+            "name": "evidenceUrls",
+            "type": "string[]",
+            "internalType": "string[]"
+          },
+          {
+            "name": "verdictId",
+            "type": "uint256",
+            "internalType": "uint256"
+          },
+          {
+            "name": "yesPool",
+            "type": "uint256",
+            "internalType": "uint256"
+          },
+          {
+            "name": "noPool",
+            "type": "uint256",
+            "internalType": "uint256"
+          },
+          {
+            "name": "resolved",
+            "type": "bool",
+            "internalType": "bool"
+          },
+          {
+            "name": "outcome",
+            "type": "bool",
+            "internalType": "bool"
+          },
+          {
+            "name": "createdAt",
+            "type": "uint256",
+            "internalType": "uint256"
+          },
+          {
+            "name": "resolveAfter",
+            "type": "uint256",
+            "internalType": "uint256"
+          }
+        ]
+      }
+    ],
+    "stateMutability": "view"
   },
   {
-    type: "function",
-    name: "claimed",
-    inputs: [
-      { name: "", type: "uint256" },
-      { name: "", type: "address" },
+    "type": "function",
+    "name": "markets",
+    "inputs": [
+      {
+        "name": "",
+        "type": "uint256",
+        "internalType": "uint256"
+      }
     ],
-    outputs: [{ name: "", type: "bool" }],
-    stateMutability: "view",
+    "outputs": [
+      {
+        "name": "question",
+        "type": "string",
+        "internalType": "string"
+      },
+      {
+        "name": "verdictId",
+        "type": "uint256",
+        "internalType": "uint256"
+      },
+      {
+        "name": "yesPool",
+        "type": "uint256",
+        "internalType": "uint256"
+      },
+      {
+        "name": "noPool",
+        "type": "uint256",
+        "internalType": "uint256"
+      },
+      {
+        "name": "resolved",
+        "type": "bool",
+        "internalType": "bool"
+      },
+      {
+        "name": "outcome",
+        "type": "bool",
+        "internalType": "bool"
+      },
+      {
+        "name": "createdAt",
+        "type": "uint256",
+        "internalType": "uint256"
+      },
+      {
+        "name": "resolveAfter",
+        "type": "uint256",
+        "internalType": "uint256"
+      }
+    ],
+    "stateMutability": "view"
   },
   {
-    type: "event",
-    name: "MarketCreated",
-    inputs: [
-      { name: "marketId", type: "uint256", indexed: true },
-      { name: "question", type: "string", indexed: false },
+    "type": "function",
+    "name": "nextMarketId",
+    "inputs": [],
+    "outputs": [
+      {
+        "name": "",
+        "type": "uint256",
+        "internalType": "uint256"
+      }
     ],
+    "stateMutability": "view"
   },
   {
-    type: "event",
-    name: "MarketResolved",
-    inputs: [
-      { name: "marketId", type: "uint256", indexed: true },
-      { name: "outcome", type: "bool", indexed: false },
+    "type": "function",
+    "name": "noStakes",
+    "inputs": [
+      {
+        "name": "",
+        "type": "uint256",
+        "internalType": "uint256"
+      },
+      {
+        "name": "",
+        "type": "address",
+        "internalType": "address"
+      }
     ],
+    "outputs": [
+      {
+        "name": "",
+        "type": "uint256",
+        "internalType": "uint256"
+      }
+    ],
+    "stateMutability": "view"
   },
   {
-    type: "event",
-    name: "StakePlaced",
-    inputs: [
-      { name: "marketId", type: "uint256", indexed: true },
-      { name: "user", type: "address", indexed: true },
-      { name: "side", type: "bool", indexed: false },
-      { name: "amount", type: "uint256", indexed: false },
+    "type": "function",
+    "name": "resolveMarket",
+    "inputs": [
+      {
+        "name": "marketId",
+        "type": "uint256",
+        "internalType": "uint256"
+      }
     ],
+    "outputs": [],
+    "stateMutability": "nonpayable"
   },
   {
-    type: "event",
-    name: "WinningsClaimed",
-    inputs: [
-      { name: "marketId", type: "uint256", indexed: true },
-      { name: "user", type: "address", indexed: true },
-      { name: "amount", type: "uint256", indexed: false },
+    "type": "function",
+    "name": "stakeNo",
+    "inputs": [
+      {
+        "name": "marketId",
+        "type": "uint256",
+        "internalType": "uint256"
+      }
     ],
+    "outputs": [],
+    "stateMutability": "payable"
   },
+  {
+    "type": "function",
+    "name": "stakeYes",
+    "inputs": [
+      {
+        "name": "marketId",
+        "type": "uint256",
+        "internalType": "uint256"
+      }
+    ],
+    "outputs": [],
+    "stateMutability": "payable"
+  },
+  {
+    "type": "function",
+    "name": "triggerResolution",
+    "inputs": [
+      {
+        "name": "marketId",
+        "type": "uint256",
+        "internalType": "uint256"
+      }
+    ],
+    "outputs": [],
+    "stateMutability": "payable"
+  },
+  {
+    "type": "function",
+    "name": "veritas",
+    "inputs": [],
+    "outputs": [
+      {
+        "name": "",
+        "type": "address",
+        "internalType": "contract IVeritas"
+      }
+    ],
+    "stateMutability": "view"
+  },
+  {
+    "type": "function",
+    "name": "yesStakes",
+    "inputs": [
+      {
+        "name": "",
+        "type": "uint256",
+        "internalType": "uint256"
+      },
+      {
+        "name": "",
+        "type": "address",
+        "internalType": "address"
+      }
+    ],
+    "outputs": [
+      {
+        "name": "",
+        "type": "uint256",
+        "internalType": "uint256"
+      }
+    ],
+    "stateMutability": "view"
+  },
+  {
+    "type": "event",
+    "name": "MarketCreated",
+    "inputs": [
+      {
+        "name": "marketId",
+        "type": "uint256",
+        "indexed": true,
+        "internalType": "uint256"
+      },
+      {
+        "name": "question",
+        "type": "string",
+        "indexed": false,
+        "internalType": "string"
+      },
+      {
+        "name": "resolveAfter",
+        "type": "uint256",
+        "indexed": false,
+        "internalType": "uint256"
+      }
+    ],
+    "anonymous": false
+  },
+  {
+    "type": "event",
+    "name": "MarketResolved",
+    "inputs": [
+      {
+        "name": "marketId",
+        "type": "uint256",
+        "indexed": true,
+        "internalType": "uint256"
+      },
+      {
+        "name": "outcome",
+        "type": "bool",
+        "indexed": false,
+        "internalType": "bool"
+      }
+    ],
+    "anonymous": false
+  },
+  {
+    "type": "event",
+    "name": "ResolutionTriggered",
+    "inputs": [
+      {
+        "name": "marketId",
+        "type": "uint256",
+        "indexed": true,
+        "internalType": "uint256"
+      },
+      {
+        "name": "verdictId",
+        "type": "uint256",
+        "indexed": false,
+        "internalType": "uint256"
+      }
+    ],
+    "anonymous": false
+  },
+  {
+    "type": "event",
+    "name": "StakePlaced",
+    "inputs": [
+      {
+        "name": "marketId",
+        "type": "uint256",
+        "indexed": true,
+        "internalType": "uint256"
+      },
+      {
+        "name": "user",
+        "type": "address",
+        "indexed": true,
+        "internalType": "address"
+      },
+      {
+        "name": "side",
+        "type": "bool",
+        "indexed": false,
+        "internalType": "bool"
+      },
+      {
+        "name": "amount",
+        "type": "uint256",
+        "indexed": false,
+        "internalType": "uint256"
+      }
+    ],
+    "anonymous": false
+  },
+  {
+    "type": "event",
+    "name": "WinningsClaimed",
+    "inputs": [
+      {
+        "name": "marketId",
+        "type": "uint256",
+        "indexed": true,
+        "internalType": "uint256"
+      },
+      {
+        "name": "user",
+        "type": "address",
+        "indexed": true,
+        "internalType": "address"
+      },
+      {
+        "name": "amount",
+        "type": "uint256",
+        "indexed": false,
+        "internalType": "uint256"
+      }
+    ],
+    "anonymous": false
+  }
 ] as const;

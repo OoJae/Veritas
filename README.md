@@ -48,9 +48,9 @@ The key insight: Somnia agent invocations are asynchronous. Your contract calls 
 |----------|---------|
 | Platform (AgentRequester) | `0x037Bb9C718F3f7fe5eCBDB0b600D607b52706776` |
 | Veritas | `0x702969d634b103f26F859aE658cD0405aa510FE3` |
-| PredictionMarket | `0xf8F20dF2EaA923754b368e215f3B3f1646f4C480` |
-| InsuranceVault | `0x7d18cd184f43A7c4302C20016E53BECe508ad7A8` |
-| DisputeArbiter | `0x61d63870DAE005138721251c5cddf0D437A405bE` |
+| PredictionMarket | `0x3BB03e11f82ce723F033cC2A47176dba326EC7C6` |
+| InsuranceVault | `0x0170D5C42cF51652b91604faf742c80e564260B5` |
+| DisputeArbiter | `0x426B0db1BC2E761410956D24b8e9FE91a6a54d2E` |
 
 ## Deposit Math
 

@@ -57,17 +57,33 @@ export function useCreateMarket() {
   const { writeContract, data: hash, isPending, error } = useWriteContract();
   const { isLoading: isConfirming, isSuccess } = useWaitForTransactionReceipt({ hash });
 
-  function createMarket(question: string, evidenceUrls: string[]) {
+  function createMarket(question: string, evidenceUrls: string[], bettingDuration: number) {
     writeContract({
       address: addresses.predictionMarket,
       abi: predictionMarketAbi,
       functionName: "createMarket",
-      args: [question, evidenceUrls],
-      value: quoteVerdictSimple(),
+      args: [question, evidenceUrls, BigInt(bettingDuration)],
     });
   }
 
   return { createMarket, hash, isPending, isConfirming, isSuccess, error };
+}
+
+export function useTriggerResolution(marketId: number) {
+  const { writeContract, data: hash, isPending, error } = useWriteContract();
+  const { isLoading: isConfirming, isSuccess } = useWaitForTransactionReceipt({ hash });
+
+  function triggerResolution() {
+    writeContract({
+      address: addresses.predictionMarket,
+      abi: predictionMarketAbi,
+      functionName: "triggerResolution",
+      args: [BigInt(marketId)],
+      value: quoteVerdictSimple(),
+    });
+  }
+
+  return { triggerResolution, hash, isPending, isConfirming, isSuccess, error };
 }
 
 export function useStakeYes(marketId: number) {

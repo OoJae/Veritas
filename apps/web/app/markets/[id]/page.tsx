@@ -9,7 +9,7 @@ import { Label } from "@/components/ui/label";
 import { Badge } from "@/components/ui/badge";
 import { Separator } from "@/components/ui/separator";
 import { BoolBadge, VerdictStage } from "@/components/verdict-display";
-import { useGetMarket, useStakeYes, useStakeNo, useClaim, useNextMarketId, useYesStake, useNoStake, useMarketClaimed } from "@/hooks/use-markets";
+import { useGetMarket, useStakeYes, useStakeNo, useClaim, useNextMarketId, useYesStake, useNoStake, useMarketClaimed, useTriggerResolution } from "@/hooks/use-markets";
 import { useGetVerdict, getVerdictStageName, usePokeVerdict, useVerdictFailureReason } from "@/hooks/use-veritas";
 import { ReasoningTrace } from "@/components/reasoning-trace";
 import { formatEther } from "viem";
@@ -33,18 +33,19 @@ export default function MarketDetailPage({ params }: { params: Promise<{ id: str
   const { stakeYes, isPending: stakeYesPending, isConfirming: stakeYesConfirming, isSuccess: stakeYesSuccess } = useStakeYes(marketId);
   const { stakeNo, isPending: stakeNoPending, isConfirming: stakeNoConfirming, isSuccess: stakeNoSuccess } = useStakeNo(marketId);
   const { claim, isPending: claimPending, isConfirming: claimConfirming, isSuccess: claimSuccess } = useClaim(marketId);
+  const { triggerResolution, isPending: triggerPending, isConfirming: triggerConfirming, isSuccess: triggerSuccess } = useTriggerResolution(marketId);
   const { poke, isPending: pokePending, isConfirming: pokeConfirming, isSuccess: pokeSuccess } = usePokeVerdict(verdictId ?? 0);
 
   const stage = verdict ? Number(verdict.stage) : 0;
   const failureReason = useVerdictFailureReason(verdictId, stage === 4);
 
   useEffect(() => {
-    if (stakeYesSuccess || stakeNoSuccess || claimSuccess || pokeSuccess) {
+    if (stakeYesSuccess || stakeNoSuccess || claimSuccess || pokeSuccess || triggerSuccess) {
       refetchMarket();
       refetchVerdict();
       refetchClaimed();
     }
-  }, [stakeYesSuccess, stakeNoSuccess, claimSuccess]);
+  }, [stakeYesSuccess, stakeNoSuccess, claimSuccess, triggerSuccess]);
 
   const notFound = nextMarketId !== undefined && marketId >= Number(nextMarketId);
 
@@ -79,6 +80,12 @@ export default function MarketDetailPage({ params }: { params: Promise<{ id: str
 
   const winningStake = market.outcome ? (userYesStake ?? BigInt(0)) : (userNoStake ?? BigInt(0));
   const canClaim = isConnected && winningStake > BigInt(0) && !userClaimed;
+
+  const nowSec = BigInt(Math.floor(Date.now() / 1000));
+  const notTriggered = market.verdictId === BigInt(0) && !market.resolved;
+  const bettingOpen = notTriggered && nowSec < market.resolveAfter;
+  const canTrigger = notTriggered && nowSec >= market.resolveAfter;
+  const resolveDate = new Date(Number(market.resolveAfter) * 1000);
 
   const totalPool = market.yesPool + market.noPool;
   const yesPct = totalPool > BigInt(0) ? Number((market.yesPool * BigInt(100)) / totalPool) : 50;
@@ -126,9 +133,15 @@ export default function MarketDetailPage({ params }: { params: Promise<{ id: str
             <Separator />
 
             <div className="text-sm space-y-1">
+              {notTriggered && (
+                <div className="flex justify-between">
+                  <span className="text-muted-foreground">Betting</span>
+                  <span>{bettingOpen ? `open until ${resolveDate.toLocaleString()}` : "closed, awaiting resolution"}</span>
+                </div>
+              )}
               <div className="flex justify-between">
                 <span className="text-muted-foreground">Verdict Status</span>
-                <VerdictStage stage={stage} failureReason={failureReason} />
+                {notTriggered ? <Badge variant="secondary">Not requested</Badge> : <VerdictStage stage={stage} failureReason={failureReason} />}
               </div>
               {verdict && stage === 3 && (
                 <div className="flex justify-between">
@@ -179,7 +192,29 @@ export default function MarketDetailPage({ params }: { params: Promise<{ id: str
           </Card>
         )}
 
-        {!market.resolved && (
+        {canTrigger && (
+          <Card>
+            <CardHeader>
+              <CardTitle className="text-lg">Trigger Resolution</CardTitle>
+            </CardHeader>
+            <CardContent>
+              <p className="text-sm text-muted-foreground">
+                Betting has closed. Anyone can trigger the AI verdict by paying the resolution fee.
+              </p>
+            </CardContent>
+            <CardFooter>
+              {isConnected ? (
+                <Button onClick={() => triggerResolution()} disabled={triggerPending || triggerConfirming}>
+                  {triggerPending ? "Confirm..." : triggerConfirming ? "Resolving..." : "Trigger Resolution"}
+                </Button>
+              ) : (
+                <p className="text-sm text-muted-foreground">Connect your wallet to trigger resolution</p>
+              )}
+            </CardFooter>
+          </Card>
+        )}
+
+        {bettingOpen && (
           <Card>
             <CardHeader>
               <CardTitle className="text-lg">Place a Stake</CardTitle>

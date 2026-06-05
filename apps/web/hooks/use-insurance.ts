@@ -51,18 +51,35 @@ export function useCreatePolicy() {
     evidenceUrls: string[],
     premium: string,
     payoutAmount: string,
-    maxParticipants: number
+    maxParticipants: number,
+    joinDuration: number
   ) {
     writeContract({
       address: addresses.insuranceVault,
       abi: insuranceVaultAbi,
       functionName: "createPolicy",
-      args: [question, evidenceUrls, parseEther(premium), parseEther(payoutAmount), BigInt(maxParticipants)],
-      value: quoteVerdictSimple(),
+      args: [question, evidenceUrls, parseEther(premium), parseEther(payoutAmount), BigInt(maxParticipants), BigInt(joinDuration)],
     });
   }
 
   return { createPolicy, hash, isPending, isConfirming, isSuccess, error };
+}
+
+export function useTriggerResolutionPolicy(policyId: number) {
+  const { writeContract, data: hash, isPending, error } = useWriteContract();
+  const { isLoading: isConfirming, isSuccess } = useWaitForTransactionReceipt({ hash });
+
+  function triggerResolution() {
+    writeContract({
+      address: addresses.insuranceVault,
+      abi: insuranceVaultAbi,
+      functionName: "triggerResolution",
+      args: [BigInt(policyId)],
+      value: quoteVerdictSimple(),
+    });
+  }
+
+  return { triggerResolution, hash, isPending, isConfirming, isSuccess, error };
 }
 
 export function useJoinPolicy(policyId: number) {
