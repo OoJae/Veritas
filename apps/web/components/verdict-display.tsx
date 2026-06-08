@@ -22,17 +22,17 @@ export function VerdictStage({ stage, failureReason }: { stage: number; failureR
 }
 
 export function VerdictResult({ result }: { result: boolean }) {
-  return (
-    <Badge variant={result ? "default" : "destructive"}>
-      {result ? "YES" : "NO"}
-    </Badge>
+  return result ? (
+    <Badge className="verdict-true">YES</Badge>
+  ) : (
+    <Badge className="verdict-false" variant="outline">NO</Badge>
   );
 }
 
 export function BoolBadge({ value, trueLabel = "Yes", falseLabel = "No" }: { value: boolean; trueLabel?: string; falseLabel?: string }) {
-  return (
-    <Badge variant={value ? "default" : "secondary"}>
-      {value ? trueLabel : falseLabel}
-    </Badge>
+  return value ? (
+    <Badge className="verdict-true">{trueLabel}</Badge>
+  ) : (
+    <Badge className="verdict-false" variant="outline">{falseLabel}</Badge>
   );
 }

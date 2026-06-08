@@ -61,7 +61,8 @@ export default function CreateMarketPage() {
       <main className="max-w-2xl mx-auto px-4 py-8">
         <Card>
           <CardHeader>
-            <CardTitle>Create Prediction Market</CardTitle>
+            <p className="eyebrow mb-1">Create Market</p>
+            <CardTitle className="font-display text-xl">New Prediction Market</CardTitle>
             <CardDescription>
               Ask a yes/no question that can be verified by AI. Creating is free: betting
               stays open for the window you choose, then anyone can trigger AI resolution.

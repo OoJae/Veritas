@@ -90,10 +90,11 @@ export default function DisputeDetailPage({ params }: { params: Promise<{ id: st
     <div className="min-h-screen">
       <Navbar />
       <main className="max-w-3xl mx-auto px-4 py-8 space-y-6">
+        <p className="eyebrow">Dispute Detail</p>
         <Card>
           <CardHeader>
             <div className="flex items-start justify-between gap-2">
-              <CardTitle className="text-xl">{dispute.question}</CardTitle>
+              <CardTitle className="font-display text-xl">{dispute.question}</CardTitle>
               {dispute.resolved ? (
                 <Badge variant="default">Resolved</Badge>
               ) : (
@@ -126,7 +127,7 @@ export default function DisputeDetailPage({ params }: { params: Promise<{ id: st
                 <Separator />
                 <div className="flex justify-between text-sm">
                   <span className="text-muted-foreground">Winner</span>
-                  <span className="font-mono text-green-400">{truncateAddress(dispute.winner)}</span>
+                  <span className="font-mono text-[var(--verum)]">{truncateAddress(dispute.winner)}</span>
                 </div>
               </>
             )}

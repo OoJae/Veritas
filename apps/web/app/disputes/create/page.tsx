@@ -60,7 +60,8 @@ export default function CreateDisputePage() {
       <main className="max-w-2xl mx-auto px-4 py-8">
         <Card>
           <CardHeader>
-            <CardTitle>Raise a Dispute</CardTitle>
+            <p className="eyebrow mb-1">Raise Dispute</p>
+            <CardTitle className="font-display text-xl">New Dispute</CardTitle>
             <CardDescription>
               Submit a dispute with a bounty. The winner (determined by AI) claims the bounty.
             </CardDescription>

@@ -62,7 +62,8 @@ export default function CreatePolicyPage() {
       <main className="max-w-2xl mx-auto px-4 py-8">
         <Card>
           <CardHeader>
-            <CardTitle>Create Insurance Policy</CardTitle>
+            <p className="eyebrow mb-1">Create Policy</p>
+            <CardTitle className="font-display text-xl">New Insurance Policy</CardTitle>
             <CardDescription>
               Define a condition that AI will evaluate. If the condition is met, all participants receive a payout.
             </CardDescription>

@@ -52,7 +52,7 @@ function DisputeCard({ id }: { id: number }) {
             {dispute.resolved && dispute.winner !== "0x0000000000000000000000000000000000000000" && (
               <div className="flex justify-between">
                 <span className="text-muted-foreground">Winner</span>
-                <span className="font-mono text-green-400">{truncate(dispute.winner)}</span>
+                <span className="font-mono text-[var(--verum)]">{truncate(dispute.winner)}</span>
               </div>
             )}
           </div>
@@ -72,9 +72,10 @@ export default function DisputesPage() {
       <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
         <div className="flex items-center justify-between mb-8">
           <div>
-            <h1 className="text-3xl font-bold">Disputes</h1>
+            <p className="eyebrow mb-1">Dispute Resolution</p>
+            <h1 className="font-display text-3xl">Disputes</h1>
             <p className="text-muted-foreground mt-1">
-              AI-judged dispute resolution with bounty incentives
+              AI-judged resolution with bounty incentives
             </p>
           </div>
           <Link href="/disputes/create">

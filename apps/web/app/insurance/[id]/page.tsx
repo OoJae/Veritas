@@ -82,10 +82,11 @@ export default function PolicyDetailPage({ params }: { params: Promise<{ id: str
     <div className="min-h-screen">
       <Navbar />
       <main className="max-w-3xl mx-auto px-4 py-8 space-y-6">
+        <p className="eyebrow">Policy Detail</p>
         <Card>
           <CardHeader>
             <div className="flex items-start justify-between gap-2">
-              <CardTitle className="text-xl">{policy.question}</CardTitle>
+              <CardTitle className="font-display text-xl">{policy.question}</CardTitle>
               {policy.resolved ? (
                 <BoolBadge value={policy.outcome} trueLabel="Paid Out" falseLabel="No Payout" />
               ) : (
@@ -215,7 +216,7 @@ export default function PolicyDetailPage({ params }: { params: Promise<{ id: str
         {isParticipant && !policy.resolved && (
           <Card>
             <CardContent className="pt-6">
-              <p className="text-sm text-green-400">You are a participant in this policy. Waiting for resolution.</p>
+              <p className="text-sm text-[var(--verum)]">You are a participant in this policy. Waiting for resolution.</p>
             </CardContent>
           </Card>
         )}

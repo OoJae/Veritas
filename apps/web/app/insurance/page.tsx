@@ -69,9 +69,10 @@ export default function InsurancePage() {
       <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
         <div className="flex items-center justify-between mb-8">
           <div>
-            <h1 className="text-3xl font-bold">Insurance Policies</h1>
+            <p className="eyebrow mb-1">Parametric Insurance</p>
+            <h1 className="font-display text-3xl">Policies</h1>
             <p className="text-muted-foreground mt-1">
-              Parametric insurance that auto-pays based on AI verdicts
+              Auto-paying insurance verified by AI
             </p>
           </div>
           <Link href="/insurance/create">

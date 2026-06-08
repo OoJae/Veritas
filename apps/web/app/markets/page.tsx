@@ -42,12 +42,12 @@ function MarketCard({ id }: { id: number }) {
         <CardContent>
           <div className="space-y-2">
             <div className="flex justify-between text-sm">
-              <span className="text-green-400">YES {yesPct}%</span>
-              <span className="text-red-400">NO {noPct}%</span>
+              <span className="text-[var(--verum)]">YES {yesPct}%</span>
+              <span className="text-[var(--stone)]">NO {noPct}%</span>
             </div>
             <div className="h-2 rounded-full overflow-hidden bg-secondary">
               <div
-                className="h-full bg-green-500 transition-all"
+                className="h-full bg-[var(--verum)] transition-all"
                 style={{ width: `${yesPct}%` }}
               />
             </div>
@@ -71,7 +71,8 @@ export default function MarketsPage() {
       <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
         <div className="flex items-center justify-between mb-8">
           <div>
-            <h1 className="text-3xl font-bold">Prediction Markets</h1>
+            <p className="eyebrow mb-1">Prediction Markets</p>
+            <h1 className="font-display text-3xl">Markets</h1>
             <p className="text-muted-foreground mt-1">
               Stake on AI-verifiable outcomes
             </p>

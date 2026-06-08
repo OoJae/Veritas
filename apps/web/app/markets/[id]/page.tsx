@@ -95,10 +95,11 @@ export default function MarketDetailPage({ params }: { params: Promise<{ id: str
     <div className="min-h-screen">
       <Navbar />
       <main className="max-w-3xl mx-auto px-4 py-8 space-y-6">
+        <p className="eyebrow">Market Detail</p>
         <Card>
           <CardHeader>
             <div className="flex items-start justify-between gap-2">
-              <CardTitle className="text-xl">{market.question}</CardTitle>
+              <CardTitle className="font-display text-xl">{market.question}</CardTitle>
               {market.resolved ? (
                 <BoolBadge value={market.outcome} trueLabel="YES" falseLabel="NO" />
               ) : (
@@ -109,12 +110,12 @@ export default function MarketDetailPage({ params }: { params: Promise<{ id: str
           <CardContent className="space-y-4">
             <div className="space-y-2">
               <div className="flex justify-between text-sm font-medium">
-                <span className="text-green-400">YES {yesPct}%</span>
-                <span className="text-red-400">NO {noPct}%</span>
+                <span className="text-[var(--verum)]">YES {yesPct}%</span>
+                <span className="text-[var(--stone)]">NO {noPct}%</span>
               </div>
               <div className="h-3 rounded-full overflow-hidden bg-secondary">
                 <div
-                  className="h-full bg-green-500 transition-all"
+                  className="h-full bg-[var(--verum)] transition-all"
                   style={{ width: `${yesPct}%` }}
                 />
               </div>
@@ -238,7 +239,7 @@ export default function MarketDetailPage({ params }: { params: Promise<{ id: str
                   <Button
                     onClick={() => stakeYes(stakeAmount)}
                     disabled={stakeYesPending || stakeYesConfirming || !stakeAmount}
-                    className="bg-green-600 hover:bg-green-700"
+                    className="bg-[var(--verum)] hover:bg-[var(--verum)] text-[var(--primary-foreground)]"
                   >
                     {stakeYesPending ? "Confirm..." : stakeYesConfirming ? "Staking..." : "Stake YES"}
                   </Button>

@@ -177,9 +177,10 @@ export default function StatusPage() {
       <Navbar />
       <main className="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
         <div className="mb-8">
-          <h1 className="text-3xl font-bold">System Status</h1>
+          <p className="eyebrow mb-1">System Status</p>
+          <h1 className="font-display text-3xl">All Verdicts</h1>
           <p className="text-muted-foreground mt-1">
-            All verdicts across every vertical
+            Every verdict across every vertical
           </p>
         </div>
 
