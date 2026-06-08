@@ -23,7 +23,7 @@ export function VerdictStage({ stage, failureReason }: { stage: number; failureR
 
 export function VerdictResult({ result }: { result: boolean }) {
   return result ? (
-    <Badge className="verdict-true">YES</Badge>
+    <Badge className="verdict-true" variant="outline">YES</Badge>
   ) : (
     <Badge className="verdict-false" variant="outline">NO</Badge>
   );
@@ -31,7 +31,7 @@ export function VerdictResult({ result }: { result: boolean }) {
 
 export function BoolBadge({ value, trueLabel = "Yes", falseLabel = "No" }: { value: boolean; trueLabel?: string; falseLabel?: string }) {
   return value ? (
-    <Badge className="verdict-true">{trueLabel}</Badge>
+    <Badge className="verdict-true" variant="outline">{trueLabel}</Badge>
   ) : (
     <Badge className="verdict-false" variant="outline">{falseLabel}</Badge>
   );

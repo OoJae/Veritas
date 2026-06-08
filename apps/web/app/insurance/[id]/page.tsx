@@ -175,12 +175,6 @@ export default function PolicyDetailPage({ params }: { params: Promise<{ id: str
               </div>
             )}
 
-            {/* Reasoning trace when verdict resolved */}
-            {verdict && stage === 3 && verdict.lastRequestId > BigInt(0) && (
-              <div className="panel">
-                <ReasoningTrace requestId={verdict.lastRequestId} />
-              </div>
-            )}
           </div>
 
           {/* Side column */}
