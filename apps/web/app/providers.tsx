@@ -50,8 +50,8 @@ export function Providers({ children }: { children: React.ReactNode }) {
       <QueryClientProvider client={queryClient}>
         <RainbowKitProvider
           theme={darkTheme({
-            accentColor: "#7c3aed",
-            accentColorForeground: "white",
+            accentColor: "#d4a843",
+            accentColorForeground: "#1a1612",
           })}
           modalSize="compact"
         >

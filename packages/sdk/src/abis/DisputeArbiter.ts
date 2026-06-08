@@ -135,6 +135,14 @@ export const disputeArbiterAbi = [
   },
   {
     type: "event",
+    name: "ResolutionTriggered",
+    inputs: [
+      { name: "disputeId", type: "uint256", indexed: true },
+      { name: "verdictId", type: "uint256", indexed: false },
+    ],
+  },
+  {
+    type: "event",
     name: "DisputeResolved",
     inputs: [
       { name: "disputeId", type: "uint256", indexed: true },

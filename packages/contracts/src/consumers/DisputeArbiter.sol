@@ -32,6 +32,7 @@ contract DisputeArbiter {
 
     event DisputeRaised(uint256 indexed disputeId, address indexed claimant, address indexed respondent, string question);
     event EvidenceSubmitted(uint256 indexed disputeId, address indexed respondent);
+    event ResolutionTriggered(uint256 indexed disputeId, uint256 verdictId);
     event DisputeResolved(uint256 indexed disputeId, address winner);
     event BountyClaimed(uint256 indexed disputeId, address indexed winner, uint256 amount);
 
@@ -126,6 +127,7 @@ contract DisputeArbiter {
         );
 
         d.verdictId = verdictId;
+        emit ResolutionTriggered(disputeId, verdictId);
     }
 
     /// @notice Called by Veritas as the payout callback.

@@ -4,7 +4,7 @@ import Link from "next/link";
 import { useState, useEffect } from "react";
 import { Navbar } from "@/components/navbar";
 import { BoolBadge } from "@/components/verdict-display";
-import { veritasAbi, predictionMarketAbi, insuranceVaultAbi, addresses } from "@veritas/agent-template";
+import { veritasAbi, predictionMarketAbi, insuranceVaultAbi, disputeArbiterAbi, addresses } from "@veritas/agent-template";
 import { useReadContract } from "wagmi";
 
 const VERTICALS: Record<string, { name: string; href: string }> = {
@@ -165,7 +165,80 @@ function useVerdictToPolicyMap() {
   return map;
 }
 
-function VerdictRow({ id, verdictToMarket, verdictToPolicy }: { id: number; verdictToMarket: Map<number, number>; verdictToPolicy: Map<number, number> }) {
+async function scanDisputeResolutionEvents(toBlock: bigint): Promise<Map<number, number>> {
+  const { createPublicClient, http } = await import("viem");
+  const { chain } = await import("@/app/providers");
+  const client = createPublicClient({ chain, transport: http() });
+
+  const map = new Map<number, number>();
+  const chunkSize = BigInt(SOMNIA_BLOCK_LIMIT);
+  const maxBlocks = 500_000n;
+  let cursor = toBlock;
+  const lowerBound = toBlock > maxBlocks ? toBlock - maxBlocks : 0n;
+
+  while (cursor >= lowerBound) {
+    const fromBlock = cursor >= chunkSize ? cursor - chunkSize + 1n : 0n;
+    try {
+      const logs = await client.getContractEvents({
+        address: addresses.disputeArbiter,
+        abi: disputeArbiterAbi,
+        eventName: "ResolutionTriggered",
+        fromBlock,
+        toBlock: cursor,
+      });
+      for (const log of logs) {
+        const { disputeId, verdictId } = log.args as { disputeId: bigint; verdictId: bigint };
+        map.set(Number(verdictId), Number(disputeId));
+      }
+    } catch {
+      try {
+        const halfChunk = chunkSize / 2n;
+        const logs = await client.getContractEvents({
+          address: addresses.disputeArbiter,
+          abi: disputeArbiterAbi,
+          eventName: "ResolutionTriggered",
+          fromBlock: cursor >= halfChunk ? cursor - halfChunk + 1n : 0n,
+          toBlock: cursor,
+        });
+        for (const log of logs) {
+          const { disputeId, verdictId } = log.args as { disputeId: bigint; verdictId: bigint };
+          map.set(Number(verdictId), Number(disputeId));
+        }
+      } catch {
+        // Skip
+      }
+    }
+    cursor = fromBlock - 1n;
+    if (cursor <= 0n) break;
+  }
+  return map;
+}
+
+function useVerdictToDisputeMap() {
+  const [map, setMap] = useState<Map<number, number>>(new Map());
+
+  useEffect(() => {
+    let cancelled = false;
+    async function fetchMapping() {
+      try {
+        const { createPublicClient, http } = await import("viem");
+        const { chain } = await import("@/app/providers");
+        const client = createPublicClient({ chain, transport: http() });
+        const latest = await client.getBlockNumber();
+        const m = await scanDisputeResolutionEvents(latest);
+        if (!cancelled) setMap(m);
+      } catch (err) {
+        console.error("Failed to fetch Dispute ResolutionTriggered events:", err);
+      }
+    }
+    fetchMapping();
+    return () => { cancelled = true; };
+  }, []);
+
+  return map;
+}
+
+function VerdictRow({ id, verdictToMarket, verdictToPolicy, verdictToDispute }: { id: number; verdictToMarket: Map<number, number>; verdictToPolicy: Map<number, number>; verdictToDispute: Map<number, number> }) {
   const { data: verdict } = useReadContract({
     address: addresses.veritas,
     abi: veritasAbi,
@@ -186,6 +259,9 @@ function VerdictRow({ id, verdictToMarket, verdictToPolicy }: { id: number; verd
     } else if (vertical.name === "Insurance") {
       const policyId = verdictToPolicy.get(id);
       linkHref = policyId !== undefined ? `/insurance/${policyId}` : undefined;
+    } else if (vertical.name === "Dispute") {
+      const disputeId = verdictToDispute.get(id);
+      linkHref = disputeId !== undefined ? `/disputes/${disputeId}` : undefined;
     } else {
       linkHref = `${vertical.href}/${id}`;
     }
@@ -218,6 +294,7 @@ export default function StatusPage() {
 
   const verdictToMarket = useVerdictToMarketMap();
   const verdictToPolicy = useVerdictToPolicyMap();
+  const verdictToDispute = useVerdictToDisputeMap();
   const count = nextId ? Number(nextId) : 0;
   const ids = Array.from({ length: count }, (_, i) => count - 1 - i);
 
@@ -249,7 +326,7 @@ export default function StatusPage() {
         ) : (
           <div className="feed">
             {ids.map((id) => (
-              <VerdictRow key={id} id={id} verdictToMarket={verdictToMarket} verdictToPolicy={verdictToPolicy} />
+              <VerdictRow key={id} id={id} verdictToMarket={verdictToMarket} verdictToPolicy={verdictToPolicy} verdictToDispute={verdictToDispute} />
             ))}
           </div>
         )}

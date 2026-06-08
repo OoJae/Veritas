@@ -84,7 +84,7 @@ export function ReasoningTrace({ requestId }: { requestId: bigint }) {
                 {result.verdict !== undefined && (
                   <div className="flex flex-wrap items-center gap-2">
                     <span className="text-xs text-muted-foreground">Verdict</span>
-                    <Badge className={String(result.verdict).toUpperCase() === "YES" ? "verdict-true" : "verdict-false"} variant={String(result.verdict).toUpperCase() === "YES" ? "default" : "outline"}>
+                    <Badge className={String(result.verdict).toUpperCase() === "YES" ? "verdict-true" : "verdict-false"} variant="outline">
                       {String(result.verdict)}
                     </Badge>
                     {result.confidence_score !== undefined && (
