@@ -1,11 +1,8 @@
 "use client";
 
 import { use, useState, useEffect } from "react";
+import Link from "next/link";
 import { Navbar } from "@/components/navbar";
-import { Card, CardHeader, CardTitle, CardContent, CardFooter } from "@/components/ui/card";
-import { Button } from "@/components/ui/button";
-import { Badge } from "@/components/ui/badge";
-import { Separator } from "@/components/ui/separator";
 import { BoolBadge, VerdictStage } from "@/components/verdict-display";
 import { useGetPolicy, useJoinPolicy, useClaimPayout, useNextPolicyId, useIsParticipant, useHasClaimedPolicy, useTriggerResolutionPolicy } from "@/hooks/use-insurance";
 import { useGetVerdict, getVerdictStageName, usePokeVerdict, useVerdictFailureReason } from "@/hooks/use-veritas";
@@ -47,16 +44,12 @@ export default function PolicyDetailPage({ params }: { params: Promise<{ id: str
     return (
       <div className="min-h-screen">
         <Navbar />
-        <main className="max-w-3xl mx-auto px-4 py-8">
-          <Card>
-            <CardHeader>
-              <CardTitle className="text-lg">Policy not found</CardTitle>
-            </CardHeader>
-            <CardContent>
-              <p className="text-sm text-muted-foreground">Policy #{id} does not exist.</p>
-            </CardContent>
-          </Card>
-        </main>
+        <div className="page">
+          <div className="panel">
+            <div className="panel-h"><h3>Not found</h3></div>
+            <p className="text-sm text-[var(--stone-400)]">Policy #{id} does not exist.</p>
+          </div>
+        </div>
       </div>
     );
   }
@@ -65,9 +58,7 @@ export default function PolicyDetailPage({ params }: { params: Promise<{ id: str
     return (
       <div className="min-h-screen">
         <Navbar />
-        <main className="max-w-3xl mx-auto px-4 py-8">
-          <p className="text-muted-foreground">Loading policy...</p>
-        </main>
+        <div className="page"><p className="text-[var(--stone-400)]">Loading policy...</p></div>
       </div>
     );
   }
@@ -81,185 +72,189 @@ export default function PolicyDetailPage({ params }: { params: Promise<{ id: str
   return (
     <div className="min-h-screen">
       <Navbar />
-      <main className="max-w-3xl mx-auto px-4 py-8 space-y-6">
-        <p className="eyebrow">Policy Detail</p>
-        <Card>
-          <CardHeader>
-            <div className="flex items-start justify-between gap-2">
-              <CardTitle className="font-display text-xl">{policy.question}</CardTitle>
-              {policy.resolved ? (
-                <BoolBadge value={policy.outcome} trueLabel="Paid Out" falseLabel="No Payout" />
-              ) : (
-                <Badge variant="outline">Active</Badge>
+      <div className="page">
+        <Link href="/insurance" className="back" style={{ marginBottom: 22, display: "inline-flex", gap: 8, fontFamily: "var(--mono)", fontSize: 11, letterSpacing: "0.14em", textTransform: "uppercase", color: "var(--stone-500)" }}>← All policies</Link>
+
+        <div className="detail">
+          {/* Main column */}
+          <div>
+            {/* Policy panel */}
+            <div className="panel">
+              <div className="panel-h">
+                {policy.resolved ? (
+                  <BoolBadge value={policy.outcome} trueLabel="Paid Out" falseLabel="No Payout" />
+                ) : (
+                  <span className="st st--active"><span className="dot" />Active</span>
+                )}
+                <span className="eyebrow">POLICY #{id}</span>
+              </div>
+              <h2 className="detail-q">{policy.question}</h2>
+              <div className="dl">
+                <div className="kv">
+                  <div className="k">Premium</div>
+                  <div className="v gold">{formatEther(policy.premium)} STT</div>
+                </div>
+                <div className="kv">
+                  <div className="k">Payout / Participant</div>
+                  <div className="v">
+                    {policy.participantCount > 0
+                      ? formatEther(policy.perParticipant)
+                      : "—"} STT
+                  </div>
+                </div>
+                <div className="kv">
+                  <div className="k">Participants</div>
+                  <div className="v mono">{String(policy.participantCount)} / {String(policy.maxParticipants)}</div>
+                </div>
+                <div className="kv">
+                  <div className="k">Verdict Status</div>
+                  <div className="v mono">
+                    <VerdictStage stage={stage} failureReason={failureReason} />
+                  </div>
+                </div>
+              </div>
+
+              {stage === 3 && (
+                <div style={{ marginTop: 18, paddingTop: 18, borderTop: "1px dashed var(--line)" }}>
+                  <div className="field-row">
+                    <span>AI Verdict</span>
+                    <BoolBadge value={policy.outcome} trueLabel="Condition Met" falseLabel="Condition Not Met" />
+                  </div>
+                </div>
               )}
             </div>
-          </CardHeader>
-          <CardContent className="space-y-4">
-            <div className="grid grid-cols-2 gap-4 text-sm">
-              <div>
-                <p className="text-muted-foreground">Premium</p>
-                <p className="font-medium text-lg">{formatEther(policy.premium)} STT</p>
-              </div>
-              <div>
-                <p className="text-muted-foreground">Payout / Participant</p>
-                <p className="font-medium text-lg">
-                  {policy.participantCount > 0
-                    ? formatEther(policy.perParticipant)
-                    : "—"} STT
-                </p>
-              </div>
-              <div>
-                <p className="text-muted-foreground">Participants</p>
-                <p className="font-medium">{String(policy.participantCount)} / {String(policy.maxParticipants)}</p>
-              </div>
-              <div>
-                <p className="text-muted-foreground">Verdict Status</p>
-                <VerdictStage stage={stage} failureReason={failureReason} />
-              </div>
-            </div>
-            {stage === 3 && (
-              <div className="flex justify-between text-sm">
-                <span className="text-muted-foreground">AI Verdict</span>
-                <BoolBadge value={policy.outcome} trueLabel="Condition Met" falseLabel="Condition Not Met" />
+
+            {/* Reasoning trace */}
+            {verdict && stage === 3 && verdict.lastRequestId > BigInt(0) && (
+              <div className="panel">
+                <ReasoningTrace requestId={verdict.lastRequestId} />
               </div>
             )}
-          </CardContent>
-        </Card>
 
-        {verdict && stage === 3 && verdict.lastRequestId > BigInt(0) && (
-          <ReasoningTrace requestId={verdict.lastRequestId} />
-        )}
+            {/* Verdict failed */}
+            {verdict && stage === 4 && (
+              <div className="panel">
+                <div className="panel-h"><h3>Verdict Failed</h3></div>
+                <p style={{ fontFamily: "var(--mono)", fontSize: 12, color: "var(--stone-400)", margin: 0 }}>
+                  {failureReason ?? "No failure reason available."}
+                </p>
+              </div>
+            )}
 
-        {verdict && stage === 4 && (
-          <Card>
-            <CardHeader>
-              <CardTitle className="text-lg">Verdict Failed</CardTitle>
-            </CardHeader>
-            <CardContent>
-              <p className="text-sm text-muted-foreground">
-                {failureReason ?? "No failure reason available."}
-              </p>
-            </CardContent>
-          </Card>
-        )}
-
-        {verdict && (stage === 1 || stage === 2) && verdict.deadline < BigInt(Math.floor(Date.now() / 1000)) && (
-          <Card>
-            <CardHeader>
-              <CardTitle className="text-lg">Verdict Stuck</CardTitle>
-            </CardHeader>
-            <CardContent>
-              <p className="text-sm text-muted-foreground">
-                The verdict deadline has passed. Somnia Reactivity will auto-poke this verdict. You can also poke manually.
-              </p>
-            </CardContent>
-            <CardFooter>
-              <Button
-                variant="outline"
-                onClick={() => poke()}
-                disabled={pokePending || pokeConfirming}
-              >
-                {pokePending ? "Confirm..." : pokeConfirming ? "Poking..." : "Poke to Failed"}
-              </Button>
-            </CardFooter>
-          </Card>
-        )}
-
-        {canTrigger && (
-          <Card>
-            <CardHeader>
-              <CardTitle className="text-lg">Trigger Resolution</CardTitle>
-            </CardHeader>
-            <CardContent>
-              <p className="text-sm text-muted-foreground">
-                The join window has closed. Anyone can trigger the AI verdict by paying the resolution fee.
-              </p>
-            </CardContent>
-            <CardFooter>
-              {isConnected ? (
-                <Button onClick={() => triggerResolution()} disabled={triggerPending || triggerConfirming}>
-                  {triggerPending ? "Confirm..." : triggerConfirming ? "Resolving..." : "Trigger Resolution"}
-                </Button>
-              ) : (
-                <p className="text-sm text-muted-foreground">Connect your wallet to trigger resolution</p>
-              )}
-            </CardFooter>
-          </Card>
-        )}
-
-        {joinOpen && !isParticipant && (
-          <Card>
-            <CardHeader>
-              <CardTitle className="text-lg">Join Policy</CardTitle>
-            </CardHeader>
-            <CardContent>
-              <p className="text-sm text-muted-foreground">
-                Pay {formatEther(policy.premium)} STT to join this policy (open until {resolveDate.toLocaleString()}).
-                If the condition is met, you receive {formatEther(policy.perParticipant)} STT.
-              </p>
-            </CardContent>
-            <CardFooter>
-              {isConnected ? (
-                <Button
-                  onClick={() => joinPolicy(formatEther(policy.premium))}
-                  disabled={joinPending || joinConfirming || Number(policy.participantCount) >= Number(policy.maxParticipants)}
+            {/* Verdict stuck - poke */}
+            {verdict && (stage === 1 || stage === 2) && verdict.deadline < BigInt(Math.floor(Date.now() / 1000)) && (
+              <div className="panel">
+                <div className="panel-h"><h3>Verdict Stuck</h3></div>
+                <p style={{ fontFamily: "var(--mono)", fontSize: 11, color: "var(--stone-500)", margin: "0 0 14px" }}>
+                  The verdict deadline has passed. Somnia Reactivity will auto-poke this verdict. You can also poke manually.
+                </p>
+                <button
+                  className="b"
+                  onClick={() => poke()}
+                  disabled={pokePending || pokeConfirming}
                 >
-                  {joinPending ? "Confirm..." : joinConfirming ? "Joining..." : "Join Policy"}
-                </Button>
-              ) : (
-                <p className="text-sm text-muted-foreground">Connect your wallet to join</p>
-              )}
-            </CardFooter>
-          </Card>
-        )}
+                  {pokePending ? "Confirm..." : pokeConfirming ? "Poking..." : "Poke to Failed"}
+                </button>
+              </div>
+            )}
 
-        {isParticipant && !policy.resolved && (
-          <Card>
-            <CardContent className="pt-6">
-              <p className="text-sm text-[var(--verum)]">You are a participant in this policy. Waiting for resolution.</p>
-            </CardContent>
-          </Card>
-        )}
+            {/* Trigger resolution */}
+            {canTrigger && (
+              <div className="panel">
+                <div className="panel-h"><h3>Trigger Resolution</h3></div>
+                <p style={{ fontFamily: "var(--mono)", fontSize: 11, color: "var(--stone-500)", margin: "0 0 14px" }}>
+                  The join window has closed. Anyone can trigger the AI verdict by paying the resolution fee.
+                </p>
+                {isConnected ? (
+                  <button className="b b--gold b--lg" onClick={() => triggerResolution()} disabled={triggerPending || triggerConfirming}>
+                    {triggerPending ? "Confirm..." : triggerConfirming ? "Resolving..." : "Trigger Resolution"}
+                  </button>
+                ) : (
+                  <p style={{ fontFamily: "var(--mono)", fontSize: 12, color: "var(--stone-400)" }}>Connect your wallet to trigger resolution</p>
+                )}
+              </div>
+            )}
 
-        {policy.resolved && policy.outcome && isParticipant && (
-          <Card>
-            <CardHeader>
-              <CardTitle className="text-lg">Claim Payout</CardTitle>
-            </CardHeader>
-            <CardContent>
-              <p className="text-sm text-muted-foreground">
-                {hasClaimed
-                  ? "You have already claimed your payout."
-                  : `The condition was met. Claim your ${formatEther(policy.perParticipant)} STT payout.`}
-              </p>
-            </CardContent>
-            <CardFooter>
-              {!isConnected ? (
-                <p className="text-sm text-muted-foreground">Connect your wallet to claim</p>
-              ) : hasClaimed ? (
-                <p className="text-sm text-muted-foreground">Payout claimed.</p>
-              ) : (
-                <Button
-                  onClick={() => claimPayout()}
-                  disabled={claimPending || claimConfirming}
-                >
-                  {claimPending ? "Confirm..." : claimConfirming ? "Claiming..." : "Claim Payout"}
-                </Button>
-              )}
-            </CardFooter>
-          </Card>
-        )}
+            {/* Reasoning trace when verdict resolved */}
+            {verdict && stage === 3 && verdict.lastRequestId > BigInt(0) && (
+              <div className="panel">
+                <ReasoningTrace requestId={verdict.lastRequestId} />
+              </div>
+            )}
+          </div>
 
-        {policy.resolved && policy.outcome && !isParticipant && (
-          <Card>
-            <CardContent className="pt-6">
-              <p className="text-sm text-muted-foreground">
-                The condition was met, but only participants who joined before resolution can claim.
-              </p>
-            </CardContent>
-          </Card>
-        )}
-      </main>
+          {/* Side column */}
+          <div>
+            {/* Join policy */}
+            {joinOpen && !isParticipant && (
+              <div className="panel">
+                <div className="panel-h"><h3>Join Policy</h3></div>
+                <p style={{ fontSize: 14, color: "var(--stone-300)", lineHeight: 1.5, margin: "0 0 18px" }}>
+                  Pay <b style={{ color: "var(--verum)" }}>{formatEther(policy.premium)} STT</b> to join this policy
+                  (open until {resolveDate.toLocaleString()}).
+                  If the condition is met, you receive {formatEther(policy.perParticipant)} STT.
+                </p>
+                {isConnected ? (
+                  <button
+                    className="b b--gold b--lg"
+                    style={{ width: "100%", justifyContent: "center" }}
+                    onClick={() => joinPolicy(formatEther(policy.premium))}
+                    disabled={joinPending || joinConfirming || Number(policy.participantCount) >= Number(policy.maxParticipants)}
+                  >
+                    {joinPending ? "Confirm..." : joinConfirming ? "Joining..." : "Join Policy"}
+                  </button>
+                ) : (
+                  <p style={{ fontFamily: "var(--mono)", fontSize: 12, color: "var(--stone-400)" }}>Connect your wallet to join</p>
+                )}
+              </div>
+            )}
+
+            {/* Participant status */}
+            {isParticipant && !policy.resolved && (
+              <div className="panel">
+                <p style={{ fontSize: 14, color: "var(--verum)", fontFamily: "var(--mono)", margin: 0 }}>
+                  You are a participant in this policy. Waiting for resolution.
+                </p>
+              </div>
+            )}
+
+            {/* Claim payout */}
+            {policy.resolved && policy.outcome && isParticipant && (
+              <div className="panel">
+                <div className="panel-h"><h3>Claim Payout</h3></div>
+                <p style={{ fontSize: 14, color: "var(--stone-300)", lineHeight: 1.5, margin: "0 0 18px" }}>
+                  {hasClaimed
+                    ? "You have already claimed your payout."
+                    : `The condition was met. Claim your ${formatEther(policy.perParticipant)} STT payout.`}
+                </p>
+                {!isConnected ? (
+                  <p style={{ fontFamily: "var(--mono)", fontSize: 12, color: "var(--stone-400)" }}>Connect your wallet to claim</p>
+                ) : hasClaimed ? (
+                  <p style={{ fontSize: 14, color: "var(--verum)", fontFamily: "var(--mono)", margin: 0 }}>✓ Payout claimed</p>
+                ) : (
+                  <button
+                    className="b b--gold b--lg"
+                    style={{ width: "100%", justifyContent: "center" }}
+                    onClick={() => claimPayout()}
+                    disabled={claimPending || claimConfirming}
+                  >
+                    {claimPending ? "Confirm..." : claimConfirming ? "Claiming..." : "Claim Payout"}
+                  </button>
+                )}
+              </div>
+            )}
+
+            {/* Non-participant resolved message */}
+            {policy.resolved && policy.outcome && !isParticipant && (
+              <div className="panel">
+                <p style={{ fontSize: 14, color: "var(--stone-400)", margin: 0 }}>
+                  The condition was met, but only participants who joined before resolution can claim.
+                </p>
+              </div>
+            )}
+          </div>
+        </div>
+      </div>
     </div>
   );
 }

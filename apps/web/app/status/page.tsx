@@ -3,9 +3,7 @@
 import Link from "next/link";
 import { useState, useEffect } from "react";
 import { Navbar } from "@/components/navbar";
-import { Card, CardContent } from "@/components/ui/card";
-import { Badge } from "@/components/ui/badge";
-import { BoolBadge, VerdictStage } from "@/components/verdict-display";
+import { BoolBadge } from "@/components/verdict-display";
 import { veritasAbi, predictionMarketAbi, addresses } from "@veritas/agent-template";
 import { useReadContract } from "wagmi";
 
@@ -19,13 +17,8 @@ function getVertical(payoutTarget: string): { name: string; href: string } | nul
   return VERTICALS[payoutTarget.toLowerCase()] ?? null;
 }
 
-// Somnia RPC rejects event queries spanning more than 1000 blocks.
 const SOMNIA_BLOCK_LIMIT = 1000;
 
-/**
- * Scan backwards from `toBlock` in 1000-block chunks for `ResolutionTriggered`
- * events. Returns ALL matches found within the search window (up to 500k blocks).
- */
 async function scanResolutionEvents(toBlock: bigint): Promise<Map<number, number>> {
   const { createPublicClient, http } = await import("viem");
   const { chain } = await import("@/app/providers");
@@ -52,7 +45,6 @@ async function scanResolutionEvents(toBlock: bigint): Promise<Map<number, number
         map.set(Number(verdictId), Number(marketId));
       }
     } catch {
-      // Smaller retry
       try {
         const halfChunk = chunkSize / 2n;
         const logs = await client.getContractEvents({
@@ -67,7 +59,7 @@ async function scanResolutionEvents(toBlock: bigint): Promise<Map<number, number
           map.set(Number(verdictId), Number(marketId));
         }
       } catch {
-        // Skip this chunk
+        // Skip
       }
     }
     cursor = fromBlock - 1n;
@@ -76,32 +68,23 @@ async function scanResolutionEvents(toBlock: bigint): Promise<Map<number, number
   return map;
 }
 
-/**
- * Build a verdictId → marketId map by scanning ResolutionTriggered events.
- * This is needed because verdict IDs are global across all verticals, so
- * verdictId != marketId when other verticals (insurance, disputes) also
- * create verdicts.
- */
 function useVerdictToMarketMap() {
   const [map, setMap] = useState<Map<number, number>>(new Map());
 
   useEffect(() => {
     let cancelled = false;
-
     async function fetchMapping() {
       try {
         const { createPublicClient, http } = await import("viem");
         const { chain } = await import("@/app/providers");
         const client = createPublicClient({ chain, transport: http() });
         const latest = await client.getBlockNumber();
-
         const m = await scanResolutionEvents(latest);
         if (!cancelled) setMap(m);
       } catch (err) {
         console.error("Failed to fetch ResolutionTriggered events:", err);
       }
     }
-
     fetchMapping();
     return () => { cancelled = true; };
   }, []);
@@ -122,9 +105,6 @@ function VerdictRow({ id, verdictToMarket }: { id: number; verdictToMarket: Map<
   const stage = Number(verdict.stage);
   const vertical = getVertical(verdict.payoutTarget);
 
-  // Resolve the correct entity ID for the link:
-  // For markets, use the marketId from the ResolutionTriggered event (not the verdictId).
-  // For other verticals, the ID mapping isn't available yet — fall back to the verdictId.
   let linkHref: string | undefined;
   if (vertical) {
     if (vertical.name === "Market") {
@@ -135,24 +115,16 @@ function VerdictRow({ id, verdictToMarket }: { id: number; verdictToMarket: Map<
     }
   }
 
+  const stageLabel = stage === 3 ? (verdict.result ? "TRUE" : "FALSE") : stage === 4 ? "FAILED" : stage === 1 ? "FETCHING" : stage === 2 ? "REASONING" : "PENDING";
+  const stageClass = stage === 3 ? (verdict.result ? "st--true" : "st--false") : stage === 4 ? "st--false" : "st--active";
+
   const content = (
-    <Card className="hover:border-primary/50 transition-colors cursor-pointer">
-      <CardContent className="py-4 flex items-center justify-between gap-4">
-        <div className="flex items-center gap-4 min-w-0">
-          <span className="text-sm font-mono text-muted-foreground shrink-0">#{id}</span>
-          <p className="text-sm font-medium truncate">{verdict.question}</p>
-        </div>
-        <div className="flex items-center gap-2 shrink-0">
-          {vertical && (
-            <Badge variant="secondary">{vertical.name}</Badge>
-          )}
-          <VerdictStage stage={stage} />
-          {stage === 3 && (
-            <BoolBadge value={verdict.result} trueLabel="YES" falseLabel="NO" />
-          )}
-        </div>
-      </CardContent>
-    </Card>
+    <div className="feed-row">
+      <span className="fid">#{String(id).padStart(4, "0")}</span>
+      <span className="fq">{verdict.question}</span>
+      <span className="fmeta">{vertical?.name ?? "—"}</span>
+      <span className={`st ${stageClass}`}>{stageLabel}</span>
+    </div>
   );
 
   if (linkHref) {
@@ -175,28 +147,36 @@ export default function StatusPage() {
   return (
     <div className="min-h-screen">
       <Navbar />
-      <main className="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-        <div className="mb-8">
-          <p className="eyebrow mb-1">System Status</p>
-          <h1 className="font-display text-3xl">All Verdicts</h1>
-          <p className="text-muted-foreground mt-1">
-            Every verdict across every vertical
-          </p>
+      <div className="page">
+        <div className="page-head">
+          <div>
+            <span className="eyebrow">04 — Network</span>
+            <h1>Status</h1>
+            <p className="sub">Every verdict Veritas has sealed across all three verticals.</p>
+          </div>
+        </div>
+
+        {/* Stat grid placeholder — will populate with real data */}
+        <div className="stat-grid">
+          <div className="stat"><div className="n gold">{count}</div><div className="l">Verdicts sealed</div></div>
+          <div className="stat"><div className="n">—</div><div className="l">Consensus rate</div></div>
+          <div className="stat"><div className="n">—</div><div className="l">Median resolution</div></div>
+          <div className="stat"><div className="n">0.33</div><div className="l">Avg cost (STT)</div></div>
         </div>
 
         {count === 0 ? (
-          <div className="text-center py-20 text-muted-foreground">
+          <div className="text-center py-20 text-[var(--stone-400)]">
             <p className="text-lg">No verdicts yet</p>
             <p className="text-sm mt-1">Create a market, policy, or dispute to get started</p>
           </div>
         ) : (
-          <div className="space-y-2">
+          <div className="feed">
             {ids.map((id) => (
               <VerdictRow key={id} id={id} verdictToMarket={verdictToMarket} />
             ))}
           </div>
         )}
-      </main>
+      </div>
     </div>
   );
 }

@@ -2,9 +2,6 @@
 
 import Link from "next/link";
 import { Navbar } from "@/components/navbar";
-import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card";
-import { Button } from "@/components/ui/button";
-import { Badge } from "@/components/ui/badge";
 import { useNextDisputeId } from "@/hooks/use-disputes";
 import { disputeArbiterAbi, addresses } from "@veritas/agent-template";
 import { useReadContract } from "wagmi";
@@ -24,40 +21,36 @@ function DisputeCard({ id }: { id: number }) {
 
   return (
     <Link href={`/disputes/${id}`}>
-      <Card className="hover:border-primary/50 transition-colors cursor-pointer h-full">
-        <CardHeader>
-          <div className="flex items-start justify-between gap-2">
-            <CardTitle className="text-base line-clamp-2">{dispute.question}</CardTitle>
-            {dispute.resolved ? (
-              <Badge variant="default">Resolved</Badge>
-            ) : (
-              <Badge variant="outline">Active</Badge>
-            )}
+      <div className="card-brand">
+        <div className="card-top">
+          <div className="card-q">{dispute.question}</div>
+          {dispute.resolved ? (
+            <span className="st st--resolved"><span className="dot" />Resolved</span>
+          ) : (
+            <span className="st st--active"><span className="dot" />Active</span>
+          )}
+        </div>
+        <div className="card-meta">
+          <div className="kv">
+            <div className="k">Claimant</div>
+            <div className="v mono">{truncate(dispute.claimant)}</div>
           </div>
-        </CardHeader>
-        <CardContent>
-          <div className="space-y-2 text-sm">
-            <div className="flex justify-between">
-              <span className="text-muted-foreground">Claimant</span>
-              <span className="font-mono">{truncate(dispute.claimant)}</span>
-            </div>
-            <div className="flex justify-between">
-              <span className="text-muted-foreground">Respondent</span>
-              <span className="font-mono">{truncate(dispute.respondent)}</span>
-            </div>
-            <div className="flex justify-between">
-              <span className="text-muted-foreground">Bounty</span>
-              <span className="font-medium">{formatEther(dispute.bounty)} STT</span>
-            </div>
-            {dispute.resolved && dispute.winner !== "0x0000000000000000000000000000000000000000" && (
-              <div className="flex justify-between">
-                <span className="text-muted-foreground">Winner</span>
-                <span className="font-mono text-[var(--verum)]">{truncate(dispute.winner)}</span>
-              </div>
-            )}
+          <div className="kv">
+            <div className="k">Respondent</div>
+            <div className="v mono">{truncate(dispute.respondent)}</div>
           </div>
-        </CardContent>
-      </Card>
+          <div className="kv">
+            <div className="k">Bounty</div>
+            <div className="v gold">{formatEther(dispute.bounty)} STT</div>
+          </div>
+          {dispute.resolved && dispute.winner !== "0x0000000000000000000000000000000000000000" && (
+            <div className="kv">
+              <div className="k">Winner</div>
+              <div className="v mono" style={{ color: "var(--verum)" }}>{truncate(dispute.winner)}</div>
+            </div>
+          )}
+        </div>
+      </div>
     </Link>
   );
 }
@@ -69,33 +62,31 @@ export default function DisputesPage() {
   return (
     <div className="min-h-screen">
       <Navbar />
-      <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-        <div className="flex items-center justify-between mb-8">
+      <div className="page">
+        <div className="page-head">
           <div>
-            <p className="eyebrow mb-1">Dispute Resolution</p>
-            <h1 className="font-display text-3xl">Disputes</h1>
-            <p className="text-muted-foreground mt-1">
-              AI-judged resolution with bounty incentives
-            </p>
+            <span className="eyebrow">Dispute Resolution</span>
+            <h1>Disputes</h1>
+            <p className="sub">AI-judged resolution with bounty incentives</p>
           </div>
           <Link href="/disputes/create">
-            <Button>Raise Dispute</Button>
+            <button className="b b--gold">Raise Dispute <span>+</span></button>
           </Link>
         </div>
 
         {count === 0 ? (
-          <div className="text-center py-20 text-muted-foreground">
+          <div className="text-center py-20 text-[var(--stone-400)]">
             <p className="text-lg">No disputes yet</p>
             <p className="text-sm mt-1">Be the first to raise one</p>
           </div>
         ) : (
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+          <div className="cards">
             {Array.from({ length: count }, (_, i) => count - 1 - i).map((id) => (
               <DisputeCard key={id} id={id} />
             ))}
           </div>
         )}
-      </main>
+      </div>
     </div>
   );
 }

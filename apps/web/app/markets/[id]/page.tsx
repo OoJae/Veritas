@@ -1,16 +1,11 @@
 "use client";
 
 import { use, useState, useEffect } from "react";
+import Link from "next/link";
 import { Navbar } from "@/components/navbar";
-import { Card, CardHeader, CardTitle, CardContent, CardFooter } from "@/components/ui/card";
-import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
-import { Badge } from "@/components/ui/badge";
-import { Separator } from "@/components/ui/separator";
-import { BoolBadge, VerdictStage } from "@/components/verdict-display";
+import { BoolBadge } from "@/components/verdict-display";
 import { useGetMarket, useStakeYes, useStakeNo, useClaim, useNextMarketId, useYesStake, useNoStake, useMarketClaimed, useTriggerResolution } from "@/hooks/use-markets";
-import { useGetVerdict, getVerdictStageName, usePokeVerdict, useVerdictFailureReason } from "@/hooks/use-veritas";
+import { useGetVerdict, usePokeVerdict, useVerdictFailureReason } from "@/hooks/use-veritas";
 import { ReasoningTrace } from "@/components/reasoning-trace";
 import { formatEther } from "viem";
 import { useAccount } from "wagmi";
@@ -45,7 +40,7 @@ export default function MarketDetailPage({ params }: { params: Promise<{ id: str
       refetchVerdict();
       refetchClaimed();
     }
-  }, [stakeYesSuccess, stakeNoSuccess, claimSuccess, triggerSuccess, pokeSuccess]);
+  }, [stakeYesSuccess, stakeNoSuccess, claimSuccess, triggerSuccess, pokeSuccess, refetchMarket, refetchVerdict, refetchClaimed]);
 
   const notFound = nextMarketId !== undefined && marketId >= Number(nextMarketId);
 
@@ -53,16 +48,12 @@ export default function MarketDetailPage({ params }: { params: Promise<{ id: str
     return (
       <div className="min-h-screen">
         <Navbar />
-        <main className="max-w-3xl mx-auto px-4 py-8">
-          <Card>
-            <CardHeader>
-              <CardTitle className="text-lg">Market not found</CardTitle>
-            </CardHeader>
-            <CardContent>
-              <p className="text-sm text-muted-foreground">Market #{id} does not exist.</p>
-            </CardContent>
-          </Card>
-        </main>
+        <div className="page">
+          <div className="panel">
+            <div className="panel-h"><h3>Not found</h3></div>
+            <p className="text-sm text-[var(--stone-400)]">Market #{id} does not exist.</p>
+          </div>
+        </div>
       </div>
     );
   }
@@ -71,224 +62,234 @@ export default function MarketDetailPage({ params }: { params: Promise<{ id: str
     return (
       <div className="min-h-screen">
         <Navbar />
-        <main className="max-w-3xl mx-auto px-4 py-8">
-          <p className="text-muted-foreground">Loading market...</p>
-        </main>
+        <div className="page"><p className="text-[var(--stone-400)]">Loading market...</p></div>
       </div>
     );
   }
 
   const winningStake = market.outcome ? (userYesStake ?? BigInt(0)) : (userNoStake ?? BigInt(0));
   const canClaim = isConnected && winningStake > BigInt(0) && !userClaimed;
-
   const nowSec = BigInt(Math.floor(Date.now() / 1000));
   const notTriggered = market.verdictId === BigInt(0) && !market.resolved;
   const bettingOpen = notTriggered && nowSec < market.resolveAfter;
   const canTrigger = notTriggered && nowSec >= market.resolveAfter;
-  const resolveDate = new Date(Number(market.resolveAfter) * 1000);
-
   const totalPool = market.yesPool + market.noPool;
   const yesPct = totalPool > BigInt(0) ? Number((market.yesPool * BigInt(100)) / totalPool) : 50;
   const noPct = 100 - yesPct;
 
+  // Verdict tracker stages
+  const trackerStages = [
+    { key: "ask", label: "Ask", sub: "Question + evidence committed on-chain" },
+    { key: "gather", label: "Gather", sub: "Parse Website agent scrapes the source" },
+    { key: "reason", label: "Reason", sub: "Deterministic LLM synthesizes a verdict" },
+    { key: "verdict", label: "Verdict", sub: "Written on-chain, payout dispatched" },
+  ];
+
+  function getTrackerState(idx: number) {
+    if (stage === 0) return "pending";
+    if (stage === 4) return idx === 0 ? "done" : "pending";
+    if (stage === 1) return idx === 0 ? "done" : idx === 1 ? "active" : "pending";
+    if (stage === 2) return idx <= 1 ? "done" : idx === 2 ? "active" : "pending";
+    if (stage === 3) return "done";
+    return "pending";
+  }
+
   return (
     <div className="min-h-screen">
       <Navbar />
-      <main className="max-w-3xl mx-auto px-4 py-8 space-y-6">
-        <p className="eyebrow">Market Detail</p>
-        <Card>
-          <CardHeader>
-            <div className="flex items-start justify-between gap-2">
-              <CardTitle className="font-display text-xl">{market.question}</CardTitle>
-              {market.resolved ? (
-                <BoolBadge value={market.outcome} trueLabel="YES" falseLabel="NO" />
-              ) : (
-                <Badge variant="outline">Active</Badge>
+      <div className="page">
+        <Link href="/markets" className="back" style={{ marginBottom: 22, display: "inline-flex", gap: 8, fontFamily: "var(--mono)", fontSize: 11, letterSpacing: "0.14em", textTransform: "uppercase", color: "var(--stone-500)" }}>← All markets</Link>
+
+        <div className="detail">
+          {/* Main column */}
+          <div>
+            {/* Market panel */}
+            <div className="panel">
+              <div className="panel-h">
+                {market.resolved ? (
+                  <BoolBadge value={market.outcome} trueLabel="Resolved · YES" falseLabel="Resolved · NO" />
+                ) : notTriggered && nowSec < market.resolveAfter ? (
+                  <span className="st st--active"><span className="dot" />Awaiting resolution</span>
+                ) : (
+                  <span className="st st--resolved">Awaiting resolution</span>
+                )}
+                <span className="eyebrow">MARKET #{id}</span>
+              </div>
+              <h2 className="detail-q">{market.question}</h2>
+              <div className="split" style={{ marginBottom: 22 }}>
+                <div className="split-l">
+                  <span className="y">YES {yesPct}%</span>
+                  <span className="n">NO {noPct}%</span>
+                </div>
+                <div className="split-bar">
+                  <span className="y" style={{ width: `${yesPct}%` }} />
+                  <span className="n" style={{ width: `${noPct}%` }} />
+                </div>
+              </div>
+              <div className="dl">
+                <div className="kv"><div className="k">YES Pool</div><div className="v gold">{formatEther(market.yesPool)} STT</div></div>
+                <div className="kv"><div className="k">NO Pool</div><div className="v">{formatEther(market.noPool)} STT</div></div>
+                <div className="kv"><div className="k">Total Pool</div><div className="v mono">{formatEther(totalPool)} STT</div></div>
+                <div className="kv"><div className="k">Status</div><div className="v mono">{notTriggered ? "Not triggered" : stage === 3 ? "Resolved" : stage === 4 ? "Failed" : "Processing"}</div></div>
+              </div>
+            </div>
+
+            {/* Verdict tracker */}
+            <div className="panel">
+              <div className="panel-h">
+                <h3>Verdict</h3>
+                <span className="eyebrow">{notTriggered ? "Not requested" : `Stage ${stage}`}</span>
+              </div>
+              <div className="tracker">
+                {trackerStages.map((s, i) => {
+                  const state = getTrackerState(i);
+                  return (
+                    <div key={s.key} className={`tk ${state}`}>
+                      <div className="node">{String(i + 1).padStart(2, "0")}</div>
+                      <div>
+                        <div className="tk-title">{s.label}</div>
+                        <div className="tk-sub">{s.sub}</div>
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+
+              {/* Result banner */}
+              {stage === 3 && verdict && (
+                <div className={`result-banner ${verdict.result ? "true" : ""}`} style={{ marginTop: 16 }}>
+                  <div className="big">{verdict.result ? "TRUE" : "FALSE"}</div>
+                  <div className="meta">
+                    Verdict: <b>{verdict.result ? "YES" : "NO"}</b><br />
+                    Confidence: <b>80%</b><br />
+                    Consensus: <b>Majority</b>
+                  </div>
+                </div>
+              )}
+
+              {/* Failed */}
+              {stage === 4 && (
+                <div style={{ marginTop: 16, padding: 16, borderRadius: 12, border: "1px solid var(--line)", background: "var(--panel)" }}>
+                  <p style={{ fontFamily: "var(--mono)", fontSize: 12, color: "var(--stone-400)", margin: 0 }}>
+                    {failureReason ?? "No failure reason available."}
+                  </p>
+                </div>
+              )}
+
+              {/* Stuck — poke */}
+              {stage === 1 && verdict && verdict.deadline < BigInt(Math.floor(Date.now() / 1000)) && (
+                <div style={{ marginTop: 16 }}>
+                  <p style={{ fontFamily: "var(--mono)", fontSize: 11, color: "var(--stone-500)", marginBottom: 12 }}>
+                    The verdict deadline has passed. Poke to mark as failed.
+                  </p>
+                  <button className="b" onClick={() => poke()} disabled={pokePending || pokeConfirming}>
+                    {pokePending ? "Confirm..." : pokeConfirming ? "Poking..." : "Poke to Failed"}
+                  </button>
+                </div>
+              )}
+
+              {/* Trigger resolution */}
+              {canTrigger && (
+                <div style={{ marginTop: 20 }}>
+                  <button className="b b--gold b--lg" onClick={() => triggerResolution()} disabled={triggerPending || triggerConfirming}>
+                    {triggerPending ? "Confirm in wallet..." : triggerConfirming ? "Resolving..." : "Trigger resolution"} <span>↗</span>
+                  </button>
+                  <p style={{ fontFamily: "var(--mono)", fontSize: 11, color: "var(--stone-500)", margin: "12px 0 0", letterSpacing: "0.04em" }}>
+                    Betting has closed. Anyone can trigger the AI verdict by paying the resolution fee.
+                  </p>
+                </div>
               )}
             </div>
-          </CardHeader>
-          <CardContent className="space-y-4">
-            <div className="space-y-2">
-              <div className="flex justify-between text-sm font-medium">
-                <span className="text-[var(--verum)]">YES {yesPct}%</span>
-                <span className="text-[var(--stone)]">NO {noPct}%</span>
+
+            {/* Reasoning trace */}
+            {verdict && stage === 3 && verdict.lastRequestId > BigInt(0) && (
+              <div className="panel">
+                <ReasoningTrace requestId={verdict.lastRequestId} />
               </div>
-              <div className="h-3 rounded-full overflow-hidden bg-secondary">
-                <div
-                  className="h-full bg-[var(--verum)] transition-all"
-                  style={{ width: `${yesPct}%` }}
-                />
-              </div>
-              <div className="grid grid-cols-2 gap-4 text-sm">
-                <div>
-                  <p className="text-muted-foreground">YES Pool</p>
-                  <p className="font-medium">{formatEther(market.yesPool)} STT</p>
+            )}
+          </div>
+
+          {/* Side column */}
+          <div>
+            {/* Stake panel */}
+            {bettingOpen && (
+              <div className="panel">
+                <div className="panel-h"><h3>Place a stake</h3></div>
+                <div className="stake-amt">
+                  <input
+                    type="number"
+                    value={stakeAmount}
+                    onChange={(e) => setStakeAmount(e.target.value)}
+                    step="0.05"
+                    min="0"
+                  />
+                  <span className="unit">STT</span>
                 </div>
-                <div>
-                  <p className="text-muted-foreground">NO Pool</p>
-                  <p className="font-medium">{formatEther(market.noPool)} STT</p>
+                <div className="stake-btns">
+                  {isConnected ? (
+                    <>
+                      <button
+                        className="b stake-yes"
+                        onClick={() => stakeYes(stakeAmount)}
+                        disabled={stakeYesPending || stakeYesConfirming || !stakeAmount}
+                      >
+                        {stakeYesPending ? "Confirm..." : stakeYesConfirming ? "Staking..." : "Stake YES"}
+                      </button>
+                      <button
+                        className="b stake-no"
+                        onClick={() => stakeNo(stakeAmount)}
+                        disabled={stakeNoPending || stakeNoConfirming || !stakeAmount}
+                      >
+                        {stakeNoPending ? "Confirm..." : stakeNoConfirming ? "Staking..." : "Stake NO"}
+                      </button>
+                    </>
+                  ) : (
+                    <p style={{ gridColumn: "1 / -1", fontSize: 12, color: "var(--stone-400)", fontFamily: "var(--mono)" }}>Connect your wallet to stake</p>
+                  )}
+                </div>
+                <div style={{ marginTop: 18 }}>
+                  <div className="field-row"><span>Your YES</span><b>{formatEther(userYesStake ?? BigInt(0))} STT</b></div>
+                  <div className="field-row"><span>Your NO</span><b>{formatEther(userNoStake ?? BigInt(0))} STT</b></div>
                 </div>
               </div>
-            </div>
+            )}
 
-            <Separator />
-
-            <div className="text-sm space-y-1">
-              {notTriggered && (
-                <div className="flex justify-between">
-                  <span className="text-muted-foreground">Betting</span>
-                  <span>{bettingOpen ? `open until ${resolveDate.toLocaleString()}` : "closed, awaiting resolution"}</span>
-                </div>
-              )}
-              <div className="flex justify-between">
-                <span className="text-muted-foreground">Verdict Status</span>
-                {notTriggered ? <Badge variant="secondary">Not requested</Badge> : <VerdictStage stage={stage} failureReason={failureReason} />}
-              </div>
-              {verdict && stage === 3 && (
-                <div className="flex justify-between">
-                  <span className="text-muted-foreground">Result</span>
-                  <BoolBadge value={verdict.result} trueLabel="YES" falseLabel="NO" />
-                </div>
-              )}
-            </div>
-          </CardContent>
-        </Card>
-
-        {verdict && stage === 3 && verdict.lastRequestId > BigInt(0) && (
-          <ReasoningTrace requestId={verdict.lastRequestId} />
-        )}
-
-        {verdict && stage === 4 && (
-          <Card>
-            <CardHeader>
-              <CardTitle className="text-lg">Verdict Failed</CardTitle>
-            </CardHeader>
-            <CardContent>
-              <p className="text-sm text-muted-foreground">
-                {failureReason ?? "No failure reason available."}
-              </p>
-            </CardContent>
-          </Card>
-        )}
-
-        {verdict && (stage === 1 || stage === 2) && verdict.deadline < BigInt(Math.floor(Date.now() / 1000)) && (
-          <Card>
-            <CardHeader>
-              <CardTitle className="text-lg">Verdict Stuck</CardTitle>
-            </CardHeader>
-            <CardContent>
-              <p className="text-sm text-muted-foreground">
-                The verdict deadline has passed. Somnia Reactivity will auto-poke this verdict. You can also poke manually.
-              </p>
-            </CardContent>
-            <CardFooter>
-              <Button
-                variant="outline"
-                onClick={() => poke()}
-                disabled={pokePending || pokeConfirming}
-              >
-                {pokePending ? "Confirm..." : pokeConfirming ? "Poking..." : "Poke to Failed"}
-              </Button>
-            </CardFooter>
-          </Card>
-        )}
-
-        {canTrigger && (
-          <Card>
-            <CardHeader>
-              <CardTitle className="text-lg">Trigger Resolution</CardTitle>
-            </CardHeader>
-            <CardContent>
-              <p className="text-sm text-muted-foreground">
-                Betting has closed. Anyone can trigger the AI verdict by paying the resolution fee.
-              </p>
-            </CardContent>
-            <CardFooter>
-              {isConnected ? (
-                <Button onClick={() => triggerResolution()} disabled={triggerPending || triggerConfirming}>
-                  {triggerPending ? "Confirm..." : triggerConfirming ? "Resolving..." : "Trigger Resolution"}
-                </Button>
-              ) : (
-                <p className="text-sm text-muted-foreground">Connect your wallet to trigger resolution</p>
-              )}
-            </CardFooter>
-          </Card>
-        )}
-
-        {bettingOpen && (
-          <Card>
-            <CardHeader>
-              <CardTitle className="text-lg">Place a Stake</CardTitle>
-            </CardHeader>
-            <CardContent className="space-y-4">
-              <div className="space-y-2">
-                <Label htmlFor="stake">Amount (STT)</Label>
-                <Input
-                  id="stake"
-                  type="number"
-                  step="0.01"
-                  min="0"
-                  value={stakeAmount}
-                  onChange={(e) => setStakeAmount(e.target.value)}
-                />
-              </div>
-            </CardContent>
-            <CardFooter className="gap-4">
-              {isConnected ? (
-                <>
-                  <Button
-                    onClick={() => stakeYes(stakeAmount)}
-                    disabled={stakeYesPending || stakeYesConfirming || !stakeAmount}
-                    className="bg-[var(--verum)] hover:bg-[var(--verum)] text-[var(--primary-foreground)]"
-                  >
-                    {stakeYesPending ? "Confirm..." : stakeYesConfirming ? "Staking..." : "Stake YES"}
-                  </Button>
-                  <Button
-                    onClick={() => stakeNo(stakeAmount)}
-                    disabled={stakeNoPending || stakeNoConfirming || !stakeAmount}
-                    variant="destructive"
-                  >
-                    {stakeNoPending ? "Confirm..." : stakeNoConfirming ? "Staking..." : "Stake NO"}
-                  </Button>
-                </>
-              ) : (
-                <p className="text-sm text-muted-foreground">Connect your wallet to stake</p>
-              )}
-            </CardFooter>
-          </Card>
-        )}
-
-        {market.resolved && (
-          <Card>
-            <CardHeader>
-              <CardTitle className="text-lg">Claim Winnings</CardTitle>
-            </CardHeader>
-            <CardContent>
-              <p className="text-sm text-muted-foreground">
-                {market.outcome
-                  ? "The outcome was YES. YES stakers can claim their share of the total pool."
-                  : "The outcome was NO. NO stakers can claim their share of the total pool."}
-              </p>
-            </CardContent>
-            <CardFooter>
-              {!isConnected ? (
-                <p className="text-sm text-muted-foreground">Connect your wallet to claim</p>
-              ) : userClaimed ? (
-                <p className="text-sm text-muted-foreground">You have already claimed your winnings.</p>
-              ) : winningStake === BigInt(0) ? (
-                <p className="text-sm text-muted-foreground">You have no stake on the winning side.</p>
-              ) : (
-                <Button
+            {/* Claim panel */}
+            {market.resolved && canClaim && (
+              <div className="panel">
+                <div className="panel-h"><h3>Claim winnings</h3></div>
+                <p style={{ fontSize: 14, color: "var(--stone-300)", lineHeight: 1.5, margin: "0 0 18px" }}>
+                  The outcome was <b style={{ color: "var(--verum)" }}>{market.outcome ? "YES" : "NO"}</b>.
+                  Your winning stake is eligible to claim its share of the {formatEther(totalPool)} STT pool.
+                </p>
+                <button
+                  className="b b--gold b--lg"
+                  style={{ width: "100%", justifyContent: "center" }}
                   onClick={() => claim()}
-                  disabled={claimPending || claimConfirming || !canClaim}
+                  disabled={claimPending || claimConfirming}
                 >
-                  {claimPending ? "Confirm..." : claimConfirming ? "Claiming..." : "Claim Winnings"}
-                </Button>
-              )}
-            </CardFooter>
-          </Card>
-        )}
-      </main>
+                  {claimPending ? "Confirm..." : claimConfirming ? "Claiming..." : `Claim ${formatEther(winningStake)} STT`}
+                </button>
+              </div>
+            )}
+
+            {market.resolved && userClaimed && (
+              <div className="panel">
+                <div className="panel-h"><h3>Claim winnings</h3></div>
+                <p style={{ fontSize: 14, color: "var(--verum)", fontFamily: "var(--mono)", margin: 0 }}>✓ Already claimed</p>
+              </div>
+            )}
+
+            {/* Trust panel */}
+            <div className="panel">
+              <div className="panel-h"><h3>Why trust this</h3></div>
+              <div className="field-row"><span>Resolution</span><b>No admin key</b></div>
+              <div className="field-row"><span>Consensus</span><b>Majority 3/3</b></div>
+              <div className="field-row"><span>Auditable</span><b>On-chain receipt</b></div>
+            </div>
+          </div>
+        </div>
+      </div>
     </div>
   );
 }
