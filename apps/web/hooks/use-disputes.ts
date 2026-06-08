@@ -36,12 +36,12 @@ export function useRaiseDispute() {
   const { writeContract, data: hash, isPending, error } = useWriteContract();
   const { isLoading: isConfirming, isSuccess } = useWaitForTransactionReceipt({ hash });
 
-  function raiseDispute(respondent: string, question: string, evidenceUrls: string[], bounty: string) {
+  function raiseDispute(respondent: string, question: string, evidenceUrls: string[], bounty: string, evidenceWindowSeconds: number) {
     writeContract({
       address: addresses.disputeArbiter,
       abi: disputeArbiterAbi,
       functionName: "raiseDispute",
-      args: [respondent as `0x${string}`, question, evidenceUrls],
+      args: [respondent as `0x${string}`, question, evidenceUrls, BigInt(evidenceWindowSeconds)],
       value: parseEther(bounty),
     });
   }

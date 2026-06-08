@@ -6,6 +6,9 @@ import {Verdict} from "../types/VeritasTypes.sol";
 
 /// @title InsuranceVault
 /// @notice Parametric insurance that auto-pays based on AI verdicts from Veritas.
+///         The creator funds the payout pool at creation. Participants pay premiums
+///         to join. If the AI confirms the condition, each participant claims their
+///         share of the pool.
 contract InsuranceVault {
     IVeritas public immutable veritas;
 
@@ -13,12 +16,12 @@ contract InsuranceVault {
         string question;
         string[] evidenceUrls;
         uint256 premium;
-        uint256 payoutAmount;
         uint256 maxParticipants;
         uint256 participantCount;
         uint256 verdictId;
         bool resolved;
         bool outcome;
+        uint256 perParticipant;
         uint256 createdAt;
         address creator;
         uint256 resolveAfter;
@@ -29,8 +32,9 @@ contract InsuranceVault {
     mapping(uint256 => mapping(address => bool)) public isParticipant;
     mapping(uint256 => address[]) internal participantList;
     mapping(uint256 => mapping(address => bool)) public hasClaimed;
+    mapping(uint256 => uint256) public poolBalance;
 
-    event PolicyCreated(uint256 indexed policyId, string question, uint256 premium, uint256 payoutAmount, uint256 resolveAfter);
+    event PolicyCreated(uint256 indexed policyId, string question, uint256 premium, uint256 resolveAfter);
     event PolicyJoined(uint256 indexed policyId, address indexed participant);
     event ResolutionTriggered(uint256 indexed policyId, uint256 verdictId);
     event PolicyResolved(uint256 indexed policyId, bool outcome);
@@ -47,21 +51,21 @@ contract InsuranceVault {
     error JoinWindowClosed();
     error JoinWindowOpen();
     error AlreadyTriggered();
+    error InsufficientPoolFunding();
 
     constructor(address _veritas) {
         veritas = IVeritas(_veritas);
     }
 
-    /// @notice Open a policy with a join window. Free: the Veritas verdict is not
-    ///         requested here, it is fired by triggerResolution after the deadline.
+    /// @notice Open a policy. msg.value funds the payout pool (enough for
+    ///         maxParticipants × payoutPerParticipant).
     function createPolicy(
         string calldata question,
         string[] calldata evidenceUrls,
         uint256 premium,
-        uint256 payoutAmount,
         uint256 maxParticipants,
         uint256 joinDuration
-    ) external returns (uint256 policyId) {
+    ) external payable returns (uint256 policyId) {
         policyId = nextPolicyId++;
 
         Policy storage p = policies[policyId];
@@ -70,13 +74,14 @@ contract InsuranceVault {
             p.evidenceUrls.push(evidenceUrls[i]);
         }
         p.premium = premium;
-        p.payoutAmount = payoutAmount;
         p.maxParticipants = maxParticipants;
         p.createdAt = block.timestamp;
         p.creator = msg.sender;
         p.resolveAfter = block.timestamp + joinDuration;
 
-        emit PolicyCreated(policyId, question, premium, payoutAmount, p.resolveAfter);
+        poolBalance[policyId] = msg.value;
+
+        emit PolicyCreated(policyId, question, premium, p.resolveAfter);
     }
 
     /// @notice After the join window closes, anyone can fire the AI verdict by
@@ -122,6 +127,8 @@ contract InsuranceVault {
             require(ok, "refund failed");
         }
 
+        poolBalance[policyId] += p.premium;
+
         emit PolicyJoined(policyId, msg.sender);
     }
 
@@ -133,11 +140,15 @@ contract InsuranceVault {
         Verdict memory v = veritas.getVerdict(p.verdictId);
         p.resolved = true;
         p.outcome = v.result;
+        if (v.result && p.participantCount > 0) {
+            p.perParticipant = poolBalance[policyId] / p.participantCount;
+        }
 
         emit PolicyResolved(policyId, v.result);
     }
 
     /// @notice Claim payout after resolution (only if outcome is YES).
+    ///         Each participant gets an equal share of the pool.
     function claimPayout(uint256 policyId) external {
         Policy storage p = policies[policyId];
         if (!p.resolved) revert NotResolved();
@@ -145,11 +156,14 @@ contract InsuranceVault {
         if (!isParticipant[policyId][msg.sender]) revert NotParticipant();
         if (hasClaimed[policyId][msg.sender]) revert AlreadyClaimed();
 
+        require(p.perParticipant > 0, "empty pool");
+
         hasClaimed[policyId][msg.sender] = true;
-        (bool ok,) = msg.sender.call{value: p.payoutAmount}("");
+        poolBalance[policyId] -= p.perParticipant;
+        (bool ok,) = msg.sender.call{value: p.perParticipant}("");
         require(ok, "transfer failed");
 
-        emit PayoutClaimed(policyId, msg.sender, p.payoutAmount);
+        emit PayoutClaimed(policyId, msg.sender, p.perParticipant);
     }
 
     /// @notice Get policy details.

@@ -23,7 +23,7 @@ export default function CreatePolicyPage() {
   const [question, setQuestion] = useState("");
   const [evidenceUrl, setEvidenceUrl] = useState("");
   const [premium, setPremium] = useState("0.1");
-  const [payout, setPayout] = useState("0.5");
+  const [poolFunding, setPoolFunding] = useState("2.5");
   const [maxParticipants, setMaxParticipants] = useState("5");
   const [windowSeconds, setWindowSeconds] = useState(DEFAULT_WINDOW_SECONDS);
 
@@ -33,7 +33,7 @@ export default function CreatePolicyPage() {
   function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
     if (!urlValid) return;
-    createPolicy(question, [evidenceUrl.trim()], premium, payout, parseInt(maxParticipants), windowSeconds);
+    createPolicy(question, [evidenceUrl.trim()], premium, parseInt(maxParticipants), windowSeconds, poolFunding);
   }
 
   if (isSuccess) {
@@ -118,16 +118,19 @@ export default function CreatePolicyPage() {
                   />
                 </div>
                 <div className="space-y-2">
-                  <Label htmlFor="payout">Payout (STT)</Label>
+                  <Label htmlFor="poolFunding">Pool Funding (STT)</Label>
                   <Input
-                    id="payout"
+                    id="poolFunding"
                     type="number"
                     step="0.01"
                     min="0"
-                    value={payout}
-                    onChange={(e) => setPayout(e.target.value)}
+                    value={poolFunding}
+                    onChange={(e) => setPoolFunding(e.target.value)}
                     required
                   />
+                  <p className="text-xs text-muted-foreground">
+                    You deposit this now. It is split equally among all participants if the condition is met.
+                  </p>
                 </div>
               </div>
               <div className="space-y-2">
@@ -158,10 +161,12 @@ export default function CreatePolicyPage() {
                 </p>
               </div>
               <div className="rounded-lg bg-secondary p-3 text-sm">
-                <p>Resolution fee: <span className="font-semibold">{cost} STT</span></p>
+                <p>You deposit: <span className="font-semibold">{poolFunding} STT</span> (payout pool)</p>
+                <p>Resolution fee: <span className="font-semibold">{cost} STT</span> (paid on trigger)</p>
                 <p className="text-muted-foreground text-xs mt-1">
-                  Creating is free. Participants pay the premium to join. After the join
-                  window closes, anyone can trigger resolution by paying this fee.
+                  You fund the payout pool now. Participants pay the premium to join.
+                  If the AI confirms the condition, the pool is split equally among participants.
+                  Premiums are added to the pool, increasing each participant's share.
                 </p>
               </div>
             </CardContent>

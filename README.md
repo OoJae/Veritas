@@ -49,8 +49,8 @@ The key insight: Somnia agent invocations are asynchronous. Your contract calls 
 | Platform (AgentRequester) | `0x037Bb9C718F3f7fe5eCBDB0b600D607b52706776` |
 | Veritas | `0x702969d634b103f26F859aE658cD0405aa510FE3` |
 | PredictionMarket | `0x3BB03e11f82ce723F033cC2A47176dba326EC7C6` |
-| InsuranceVault | `0x0170D5C42cF51652b91604faf742c80e564260B5` |
-| DisputeArbiter | `0x426B0db1BC2E761410956D24b8e9FE91a6a54d2E` |
+| InsuranceVault | `0xE10caF9F4F8a62F289306990a801E0c26be4f347` |
+| DisputeArbiter | `0x5953449B12dF9bDC820E0C61Af526d0686030E11` |
 
 ## Deposit Math
 
@@ -62,6 +62,72 @@ The platform charges per-agent rewards to the validator subcommittee. You must s
 | Deliberated (N URLs) | 0.03 + N x 0.30 + 0.21 | **0.03 + N x 0.30 + 0.21 STT** |
 
 Use `quoteVerdict(mode, numEvidenceUrls)` on-chain or `quoteVerdictSimple()` / `quoteVerdictDeliberated(n)` from the SDK to get the exact amount. Sending extra is fine, the surplus is rebated to the contract.
+
+## The Three Verticals
+
+### PredictionMarket
+
+Stake YES or NO on a question. After the betting window closes, anyone can trigger AI resolution by paying the verdict fee. Winners claim a proportional share of the losers' pool.
+
+```solidity
+// Create a market (free, betting window = 10 minutes)
+uint256 marketId = market.createMarket("Will ETH be above $5000?", evidenceUrls, 600);
+
+// After the window closes, trigger the AI verdict
+market.triggerResolution{value: 0.33 ether}(marketId);
+
+// Winners claim their share
+market.claim(marketId);
+```
+
+### InsuranceVault
+
+Parametric insurance that auto-pays based on AI verdicts. The creator funds the payout pool at creation. Participants pay a premium to join. If the AI confirms the condition, the pool is split equally among all participants.
+
+```solidity
+// Create a policy — you deposit 2.5 STT as the payout pool
+vault.createPolicy{value: 2.5 ether}(
+    "Did NVIDIA announce a 10-for-1 stock split in May 2024?",
+    evidenceUrls,
+    0.1 ether,  // premium per participant
+    5,          // max participants
+    120         // join window (seconds)
+);
+
+// Participants join by paying the premium
+vault.joinPolicy{value: 0.1 ether}(policyId);
+
+// After the window closes, trigger resolution
+vault.triggerResolution{value: 0.33 ether}(policyId);
+
+// If YES, each participant claims their equal share of the pool
+vault.claimPayout(policyId);
+```
+
+**Pool math:** If the creator deposits 2.5 STT and 2 participants join at 0.1 STT each, the pool is 2.7 STT. Each participant receives 2.7 / 2 = **1.35 STT** — a 13.5x return on their 0.1 STT premium.
+
+### DisputeArbiter
+
+AI-judged DAO dispute resolution. The claimant raises a dispute with a bounty and evidence. The respondent submits counter-evidence within the evidence window. Veritas resolves who wins, and the winner claims the bounty.
+
+```solidity
+// Raise a dispute — you set the evidence window and deposit the bounty
+arbiter.raiseDispute{value: 0.1 ether}(
+    respondent,
+    "Was the Apple Vision Pro released before March 2024?",
+    evidenceUrls,
+    120  // evidence window (seconds, configurable up to 7 days)
+);
+
+// Respondent submits counter-evidence within the window
+arbiter.submitEvidence(disputeId, counterEvidenceUrls);
+
+// After the window, trigger resolution
+arbiter.resolveDispute{value: 0.33 ether}(disputeId);
+
+// Winner claims the bounty
+arbiter.claimBounty(disputeId);
+```
 
 ## Why Only on Somnia
 
@@ -219,6 +285,42 @@ Use `getReceiptUrl(requestId)` to build the index URL. The `<ReasoningTrace>`
 component does the two-step fetch and renders the verdict, real confidence score,
 reasoning, and consensus metadata, and degrades to an empty state while a receipt
 is still propagating.
+
+## End-to-End Test Results
+
+All three verticals have been tested live on Somnia testnet with real AI verdicts.
+
+### Prediction Market — "Is Bitcoin's price above $100,000?"
+
+| Step | TX |
+|------|-----|
+| Create market | `0x961c3b...` |
+| Stake YES (0.1 STT) | — |
+| Trigger resolution | `0x806115...` |
+| AI verdict | **YES** ✅ |
+
+### Insurance — "Did NVIDIA announce a 10-for-1 stock split in May 2024?"
+
+| Step | TX |
+|------|-----|
+| Create policy (2.5 STT pool) | `0x2c4095...` |
+| Wallet A joins (0.1 STT) | — |
+| Wallet B joins (0.1 STT) | — |
+| Trigger resolution | — |
+| AI verdict | **YES** ✅ |
+| Wallet A claims 1.35 STT | — |
+| Wallet B claims 1.35 STT | — |
+| Vault balance | **0 STT** (fully distributed) |
+
+### Dispute — "Was the Apple Vision Pro released before March 2024?"
+
+| Step | TX |
+|------|-----|
+| Wallet A raises dispute (0.1 STT bounty) | `0x961c3b...` |
+| Wallet B submits counter-evidence | `0xea6091...` |
+| Trigger resolution | `0x806115...` |
+| AI verdict | **YES** (claimant wins) ✅ |
+| Wallet A claims bounty | `0xd23e02...` |
 
 ## License
 

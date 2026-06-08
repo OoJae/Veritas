@@ -45,7 +45,7 @@ export default function MarketDetailPage({ params }: { params: Promise<{ id: str
       refetchVerdict();
       refetchClaimed();
     }
-  }, [stakeYesSuccess, stakeNoSuccess, claimSuccess, triggerSuccess]);
+  }, [stakeYesSuccess, stakeNoSuccess, claimSuccess, triggerSuccess, pokeSuccess]);
 
   const notFound = nextMarketId !== undefined && marketId >= Number(nextMarketId);
 

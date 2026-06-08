@@ -10,6 +10,7 @@ import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { useRaiseDispute } from "@/hooks/use-disputes";
 import { isScrapeableUrl, looksLikeRawApi } from "@/lib/evidence";
+import { WINDOW_PRESETS, DEFAULT_WINDOW_SECONDS } from "@/lib/windows";
 import { useAccount } from "wagmi";
 
 export default function CreateDisputePage() {
@@ -21,13 +22,14 @@ export default function CreateDisputePage() {
   const [respondent, setRespondent] = useState("");
   const [evidenceUrl, setEvidenceUrl] = useState("");
   const [bounty, setBounty] = useState("0.5");
+  const [windowSeconds, setWindowSeconds] = useState(DEFAULT_WINDOW_SECONDS);
 
   const urlValid = isScrapeableUrl(evidenceUrl);
 
   function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
     if (!urlValid) return;
-    raiseDispute(respondent, question, [evidenceUrl.trim()], bounty);
+    raiseDispute(respondent, question, [evidenceUrl.trim()], bounty, windowSeconds);
   }
 
   if (isSuccess) {
@@ -112,6 +114,22 @@ export default function CreateDisputePage() {
                     more reliably.
                   </p>
                 )}
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="window">Evidence window</Label>
+                <select
+                  id="window"
+                  className="w-full rounded-md border border-input bg-background px-3 py-2 text-sm"
+                  value={windowSeconds}
+                  onChange={(e) => setWindowSeconds(Number(e.target.value))}
+                >
+                  {WINDOW_PRESETS.map((p) => (
+                    <option key={p.seconds} value={p.seconds}>{p.label}</option>
+                  ))}
+                </select>
+                <p className="text-xs text-muted-foreground">
+                  How long the respondent has to submit counter-evidence.
+                </p>
               </div>
               <div className="space-y-2">
                 <Label htmlFor="bounty">Bounty (STT)</Label>

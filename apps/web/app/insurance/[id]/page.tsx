@@ -100,8 +100,12 @@ export default function PolicyDetailPage({ params }: { params: Promise<{ id: str
                 <p className="font-medium text-lg">{formatEther(policy.premium)} STT</p>
               </div>
               <div>
-                <p className="text-muted-foreground">Payout</p>
-                <p className="font-medium text-lg">{formatEther(policy.payoutAmount)} STT</p>
+                <p className="text-muted-foreground">Payout / Participant</p>
+                <p className="font-medium text-lg">
+                  {policy.participantCount > 0
+                    ? formatEther(policy.perParticipant)
+                    : "—"} STT
+                </p>
               </div>
               <div>
                 <p className="text-muted-foreground">Participants</p>
@@ -190,7 +194,7 @@ export default function PolicyDetailPage({ params }: { params: Promise<{ id: str
             <CardContent>
               <p className="text-sm text-muted-foreground">
                 Pay {formatEther(policy.premium)} STT to join this policy (open until {resolveDate.toLocaleString()}).
-                If the condition is met, you receive {formatEther(policy.payoutAmount)} STT.
+                If the condition is met, you receive {formatEther(policy.perParticipant)} STT.
               </p>
             </CardContent>
             <CardFooter>
@@ -225,7 +229,7 @@ export default function PolicyDetailPage({ params }: { params: Promise<{ id: str
               <p className="text-sm text-muted-foreground">
                 {hasClaimed
                   ? "You have already claimed your payout."
-                  : `The condition was met. Claim your ${formatEther(policy.payoutAmount)} STT payout.`}
+                  : `The condition was met. Claim your ${formatEther(policy.perParticipant)} STT payout.`}
               </p>
             </CardContent>
             <CardFooter>

@@ -10,7 +10,7 @@ import {Verdict} from "../types/VeritasTypes.sol";
 contract DisputeArbiter {
     IVeritas public immutable veritas;
 
-    uint256 public constant EVIDENCE_WINDOW = 1 hours;
+    uint256 public constant MAX_EVIDENCE_WINDOW = 7 days;
 
     struct Dispute {
         string question;
@@ -42,6 +42,7 @@ contract DisputeArbiter {
     error NoBounty();
     error AlreadyClaimed();
     error DisputeNotResolved();
+    error InvalidEvidenceWindow();
 
     constructor(address _veritas) {
         veritas = IVeritas(_veritas);
@@ -51,8 +52,13 @@ contract DisputeArbiter {
     function raiseDispute(
         address respondent,
         string calldata question,
-        string[] calldata claimantEvidenceUrls
+        string[] calldata claimantEvidenceUrls,
+        uint256 evidenceWindow
     ) external payable returns (uint256 disputeId) {
+        if (evidenceWindow == 0 || evidenceWindow > MAX_EVIDENCE_WINDOW) {
+            revert InvalidEvidenceWindow();
+        }
+
         disputeId = nextDisputeId++;
         Dispute storage d = disputes[disputeId];
         d.question = question;
@@ -63,7 +69,7 @@ contract DisputeArbiter {
         d.resolved = false;
         d.winner = address(0);
         d.createdAt = block.timestamp;
-        d.evidenceDeadline = block.timestamp + EVIDENCE_WINDOW;
+        d.evidenceDeadline = block.timestamp + evidenceWindow;
 
         for (uint256 i = 0; i < claimantEvidenceUrls.length; i++) {
             d.claimantEvidenceUrls.push(claimantEvidenceUrls[i]);

@@ -50,15 +50,16 @@ export function useCreatePolicy() {
     question: string,
     evidenceUrls: string[],
     premium: string,
-    payoutAmount: string,
     maxParticipants: number,
-    joinDuration: number
+    joinDuration: number,
+    poolFunding: string
   ) {
     writeContract({
       address: addresses.insuranceVault,
       abi: insuranceVaultAbi,
       functionName: "createPolicy",
-      args: [question, evidenceUrls, parseEther(premium), parseEther(payoutAmount), BigInt(maxParticipants), BigInt(joinDuration)],
+      args: [question, evidenceUrls, parseEther(premium), BigInt(maxParticipants), BigInt(joinDuration)],
+      value: parseEther(poolFunding),
     });
   }
 

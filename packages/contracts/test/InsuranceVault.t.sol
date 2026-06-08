@@ -32,7 +32,6 @@ contract InsuranceVaultTest is Test {
 
         vm.deal(address(this), 100 ether);
         vm.deal(address(veritas), 100 ether);
-        vm.deal(address(vault), 100 ether);
         vm.deal(alice, 100 ether);
         vm.deal(bob, 100 ether);
         vm.deal(carol, 100 ether);
@@ -42,11 +41,11 @@ contract InsuranceVaultTest is Test {
         string[] memory urls = new string[](1);
         urls[0] = "https://weather.example.com/nyc-rain";
 
-        policyId = vault.createPolicy(
+        // Creator funds pool with 1.5 STT (0.5 per participant × 3 max)
+        policyId = vault.createPolicy{value: 1.5 ether}(
             "Did it rain more than 2 inches in NYC on May 25?",
             urls,
             0.1 ether,   // premium
-            0.5 ether,   // payout
             3,           // max participants
             JOIN         // join window
         );
@@ -63,7 +62,6 @@ contract InsuranceVaultTest is Test {
 
         InsuranceVault.Policy memory p = vault.getPolicy(policyId);
         assertEq(p.premium, 0.1 ether);
-        assertEq(p.payoutAmount, 0.5 ether);
         assertEq(p.maxParticipants, 3);
         assertEq(p.participantCount, 0);
         assertEq(p.verdictId, 0);
@@ -128,20 +126,22 @@ contract InsuranceVaultTest is Test {
         assertTrue(p.resolved);
         assertTrue(p.outcome);
 
+        // Pool = 1.5 (creator) + 0.3 (premiums) = 1.8 STT
+        // Each participant gets 1.8 / 3 = 0.6 STT
         uint256 aliceBefore = alice.balance;
         vm.prank(alice);
         vault.claimPayout(policyId);
-        assertEq(alice.balance - aliceBefore, 0.5 ether);
+        assertEq(alice.balance - aliceBefore, 0.6 ether);
 
         uint256 bobBefore = bob.balance;
         vm.prank(bob);
         vault.claimPayout(policyId);
-        assertEq(bob.balance - bobBefore, 0.5 ether);
+        assertEq(bob.balance - bobBefore, 0.6 ether);
 
         uint256 carolBefore = carol.balance;
         vm.prank(carol);
         vault.claimPayout(policyId);
-        assertEq(carol.balance - carolBefore, 0.5 ether);
+        assertEq(carol.balance - carolBefore, 0.6 ether);
     }
 
     function test_fullFlow_noOutcome() public {

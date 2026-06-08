@@ -12,6 +12,7 @@ export const disputeArbiterAbi = [
       { name: "respondent", type: "address" },
       { name: "question", type: "string" },
       { name: "claimantEvidenceUrls", type: "string[]" },
+      { name: "evidenceWindow", type: "uint256" },
     ],
     outputs: [{ name: "disputeId", type: "uint256" }],
     stateMutability: "payable",
@@ -92,7 +93,7 @@ export const disputeArbiterAbi = [
   },
   {
     type: "function",
-    name: "EVIDENCE_WINDOW",
+    name: "MAX_EVIDENCE_WINDOW",
     inputs: [],
     outputs: [{ name: "", type: "uint256" }],
     stateMutability: "view",
@@ -182,6 +183,11 @@ export const disputeArbiterAbi = [
   {
     type: "error",
     name: "DisputeNotResolved",
+    inputs: [],
+  },
+  {
+    type: "error",
+    name: "InvalidEvidenceWindow",
     inputs: [],
   },
 ] as const;

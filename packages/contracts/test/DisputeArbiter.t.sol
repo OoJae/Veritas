@@ -41,7 +41,8 @@ contract DisputeArbiterTest is Test {
         disputeId = arbiter.raiseDispute{value: 1 ether}(
             respondent,
             "Did the DAO treasury lose funds due to the March proposal?",
-            urls
+            urls,
+            1 hours
         );
     }
 

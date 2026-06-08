@@ -41,8 +41,12 @@ function PolicyCard({ id }: { id: number }) {
               <p className="font-medium">{formatEther(policy.premium)} STT</p>
             </div>
             <div>
-              <p className="text-muted-foreground">Payout</p>
-              <p className="font-medium">{formatEther(policy.payoutAmount)} STT</p>
+              <p className="text-muted-foreground">Payout / Participant</p>
+              <p className="font-medium">
+                {policy.participantCount > 0
+                  ? formatEther(policy.perParticipant)
+                  : "—"} STT
+              </p>
             </div>
             <div>
               <p className="text-muted-foreground">Participants</p>
