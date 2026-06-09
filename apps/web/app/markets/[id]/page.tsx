@@ -161,8 +161,8 @@ export default function MarketDetailPage({ params }: { params: Promise<{ id: str
                   <div className="big">{verdict.result ? "TRUE" : "FALSE"}</div>
                   <div className="meta">
                     Verdict: <b>{verdict.result ? "YES" : "NO"}</b><br />
-                    Confidence: <b>80%</b><br />
-                    Consensus: <b>Majority</b>
+                    Confidence: <b>{Number(verdict.confidence)}%</b><br />
+                    Consensus: <b>Threshold 3/5</b>
                   </div>
                 </div>
               )}
@@ -290,7 +290,7 @@ export default function MarketDetailPage({ params }: { params: Promise<{ id: str
             <div className="panel">
               <div className="panel-h"><h3>Why trust this</h3></div>
               <div className="field-row"><span>Resolution</span><b>No admin key</b></div>
-              <div className="field-row"><span>Consensus</span><b>Majority 3/3</b></div>
+              <div className="field-row"><span>Consensus</span><b>Threshold 3/5</b></div>
               <div className="field-row"><span>Auditable</span><b>On-chain receipt</b></div>
             </div>
           </div>

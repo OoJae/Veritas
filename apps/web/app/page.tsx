@@ -318,7 +318,7 @@ export default function LandingPage() {
             </Reveal>
             <Reveal delay={2}>
               <div className="vm-sub">
-                Sealed by <b>3 / 3 validators</b> · Majority consensus · Receipt <b>0x7af3…e10c</b>
+                Sealed by <b>3 of 5 validators</b> · Threshold consensus · Receipt <b>0x7af3…e10c</b>
               </div>
             </Reveal>
           </div>
@@ -412,7 +412,7 @@ export default function LandingPage() {
                   <div style={{ height: 14 }} />
                   <div className="rrow"><span className="rk">VERDICT</span><span className="rv gold">TRUE</span></div>
                   <div className="rrow"><span className="rk">CONFIDENCE</span><span className="rv">0.96</span></div>
-                  <div className="rrow"><span className="rk">CONSENSUS</span><span className="rv">MAJORITY · 3/3</span></div>
+                  <div className="rrow"><span className="rk">CONSENSUS</span><span className="rv">THRESHOLD · 3/5</span></div>
                   <div className="rrow"><span className="rk">VALIDATOR SIG</span><span className="rv sig">0x9c1ad4…b827f0a3</span></div>
                 </div>
               </Reveal>
