@@ -1,34 +1,543 @@
 export const insuranceVaultAbi = [
-  {"type": "constructor", "inputs": [{"name": "_veritas", "type": "address", "internalType": "address"}], "stateMutability": "nonpayable"},
-  {"type": "receive", "stateMutability": "payable"},
-  {"type": "function", "name": "claimPayout", "inputs": [{"name": "policyId", "type": "uint256", "internalType": "uint256"}], "outputs": [], "stateMutability": "nonpayable"},
-  {"type": "function", "name": "createPolicy", "inputs": [{"name": "question", "type": "string", "internalType": "string"}, {"name": "evidenceUrls", "type": "string[]", "internalType": "string[]"}, {"name": "premium", "type": "uint256", "internalType": "uint256"}, {"name": "maxParticipants", "type": "uint256", "internalType": "uint256"}, {"name": "joinDuration", "type": "uint256", "internalType": "uint256"}], "outputs": [{"name": "policyId", "type": "uint256", "internalType": "uint256"}], "stateMutability": "payable"},
-  {"type": "function", "name": "getParticipants", "inputs": [{"name": "policyId", "type": "uint256", "internalType": "uint256"}], "outputs": [{"name": "", "type": "address[]", "internalType": "address[]"}], "stateMutability": "view"},
-  {"type": "function", "name": "getPolicy", "inputs": [{"name": "policyId", "type": "uint256", "internalType": "uint256"}], "outputs": [{"name": "", "type": "tuple", "internalType": "struct InsuranceVault.Policy", "components": [{"name": "question", "type": "string", "internalType": "string"}, {"name": "evidenceUrls", "type": "string[]", "internalType": "string[]"}, {"name": "premium", "type": "uint256", "internalType": "uint256"}, {"name": "maxParticipants", "type": "uint256", "internalType": "uint256"}, {"name": "participantCount", "type": "uint256", "internalType": "uint256"}, {"name": "verdictId", "type": "uint256", "internalType": "uint256"}, {"name": "resolved", "type": "bool", "internalType": "bool"}, {"name": "outcome", "type": "bool", "internalType": "bool"}, {"name": "perParticipant", "type": "uint256", "internalType": "uint256"}, {"name": "createdAt", "type": "uint256", "internalType": "uint256"}, {"name": "creator", "type": "address", "internalType": "address"}, {"name": "resolveAfter", "type": "uint256", "internalType": "uint256"}]}], "stateMutability": "view"},
-  {"type": "function", "name": "hasClaimed", "inputs": [{"name": "", "type": "uint256", "internalType": "uint256"}, {"name": "", "type": "address", "internalType": "address"}], "outputs": [{"name": "", "type": "bool", "internalType": "bool"}], "stateMutability": "view"},
-  {"type": "function", "name": "isParticipant", "inputs": [{"name": "", "type": "uint256", "internalType": "uint256"}, {"name": "", "type": "address", "internalType": "address"}], "outputs": [{"name": "", "type": "bool", "internalType": "bool"}], "stateMutability": "view"},
-  {"type": "function", "name": "joinPolicy", "inputs": [{"name": "policyId", "type": "uint256", "internalType": "uint256"}], "outputs": [], "stateMutability": "payable"},
-  {"type": "function", "name": "nextPolicyId", "inputs": [], "outputs": [{"name": "", "type": "uint256", "internalType": "uint256"}], "stateMutability": "view"},
-  {"type": "function", "name": "policies", "inputs": [{"name": "", "type": "uint256", "internalType": "uint256"}], "outputs": [{"name": "question", "type": "string", "internalType": "string"}, {"name": "premium", "type": "uint256", "internalType": "uint256"}, {"name": "maxParticipants", "type": "uint256", "internalType": "uint256"}, {"name": "participantCount", "type": "uint256", "internalType": "uint256"}, {"name": "verdictId", "type": "uint256", "internalType": "uint256"}, {"name": "resolved", "type": "bool", "internalType": "bool"}, {"name": "outcome", "type": "bool", "internalType": "bool"}, {"name": "perParticipant", "type": "uint256", "internalType": "uint256"}, {"name": "createdAt", "type": "uint256", "internalType": "uint256"}, {"name": "creator", "type": "address", "internalType": "address"}, {"name": "resolveAfter", "type": "uint256", "internalType": "uint256"}], "stateMutability": "view"},
-  {"type": "function", "name": "poolBalance", "inputs": [{"name": "", "type": "uint256", "internalType": "uint256"}], "outputs": [{"name": "", "type": "uint256", "internalType": "uint256"}], "stateMutability": "view"},
-  {"type": "function", "name": "resolvePolicy", "inputs": [{"name": "policyId", "type": "uint256", "internalType": "uint256"}], "outputs": [], "stateMutability": "nonpayable"},
-  {"type": "function", "name": "triggerResolution", "inputs": [{"name": "policyId", "type": "uint256", "internalType": "uint256"}], "outputs": [], "stateMutability": "payable"},
-  {"type": "function", "name": "veritas", "inputs": [], "outputs": [{"name": "", "type": "address", "internalType": "contract IVeritas"}], "stateMutability": "view"},
-  {"type": "event", "name": "PayoutClaimed", "inputs": [{"name": "policyId", "type": "uint256", "indexed": true, "internalType": "uint256"}, {"name": "participant", "type": "address", "indexed": true, "internalType": "address"}, {"name": "amount", "type": "uint256", "indexed": false, "internalType": "uint256"}], "anonymous": false},
-  {"type": "event", "name": "PolicyCreated", "inputs": [{"name": "policyId", "type": "uint256", "indexed": true, "internalType": "uint256"}, {"name": "question", "type": "string", "indexed": false, "internalType": "string"}, {"name": "premium", "type": "uint256", "indexed": false, "internalType": "uint256"}, {"name": "resolveAfter", "type": "uint256", "indexed": false, "internalType": "uint256"}], "anonymous": false},
-  {"type": "event", "name": "PolicyJoined", "inputs": [{"name": "policyId", "type": "uint256", "indexed": true, "internalType": "uint256"}, {"name": "participant", "type": "address", "indexed": true, "internalType": "address"}], "anonymous": false},
-  {"type": "event", "name": "PolicyResolved", "inputs": [{"name": "policyId", "type": "uint256", "indexed": true, "internalType": "uint256"}, {"name": "outcome", "type": "bool", "indexed": false, "internalType": "bool"}], "anonymous": false},
-  {"type": "event", "name": "ResolutionTriggered", "inputs": [{"name": "policyId", "type": "uint256", "indexed": true, "internalType": "uint256"}, {"name": "verdictId", "type": "uint256", "indexed": false, "internalType": "uint256"}], "anonymous": false},
-  {"type": "error", "name": "AlreadyClaimed", "inputs": []},
-  {"type": "error", "name": "AlreadyJoined", "inputs": []},
-  {"type": "error", "name": "AlreadyTriggered", "inputs": []},
-  {"type": "error", "name": "InsufficientPoolFunding", "inputs": []},
-  {"type": "error", "name": "InsufficientPremium", "inputs": []},
-  {"type": "error", "name": "JoinWindowClosed", "inputs": []},
-  {"type": "error", "name": "JoinWindowOpen", "inputs": []},
-  {"type": "error", "name": "NoPayout", "inputs": []},
-  {"type": "error", "name": "NotParticipant", "inputs": []},
-  {"type": "error", "name": "NotResolved", "inputs": []},
-  {"type": "error", "name": "PolicyAlreadyResolved", "inputs": []},
-  {"type": "error", "name": "PolicyFull", "inputs": []}
+  {
+    "type": "constructor",
+    "inputs": [
+      {
+        "name": "_veritas",
+        "type": "address",
+        "internalType": "address"
+      }
+    ],
+    "stateMutability": "nonpayable"
+  },
+  {
+    "type": "receive",
+    "stateMutability": "payable"
+  },
+  {
+    "type": "function",
+    "name": "claimPayout",
+    "inputs": [
+      {
+        "name": "policyId",
+        "type": "uint256",
+        "internalType": "uint256"
+      }
+    ],
+    "outputs": [],
+    "stateMutability": "nonpayable"
+  },
+  {
+    "type": "function",
+    "name": "createPolicy",
+    "inputs": [
+      {
+        "name": "question",
+        "type": "string",
+        "internalType": "string"
+      },
+      {
+        "name": "evidenceUrls",
+        "type": "string[]",
+        "internalType": "string[]"
+      },
+      {
+        "name": "premium",
+        "type": "uint256",
+        "internalType": "uint256"
+      },
+      {
+        "name": "maxParticipants",
+        "type": "uint256",
+        "internalType": "uint256"
+      },
+      {
+        "name": "joinDuration",
+        "type": "uint256",
+        "internalType": "uint256"
+      }
+    ],
+    "outputs": [
+      {
+        "name": "policyId",
+        "type": "uint256",
+        "internalType": "uint256"
+      }
+    ],
+    "stateMutability": "payable"
+  },
+  {
+    "type": "function",
+    "name": "getParticipants",
+    "inputs": [
+      {
+        "name": "policyId",
+        "type": "uint256",
+        "internalType": "uint256"
+      }
+    ],
+    "outputs": [
+      {
+        "name": "",
+        "type": "address[]",
+        "internalType": "address[]"
+      }
+    ],
+    "stateMutability": "view"
+  },
+  {
+    "type": "function",
+    "name": "getPolicy",
+    "inputs": [
+      {
+        "name": "policyId",
+        "type": "uint256",
+        "internalType": "uint256"
+      }
+    ],
+    "outputs": [
+      {
+        "name": "",
+        "type": "tuple",
+        "internalType": "struct InsuranceVault.Policy",
+        "components": [
+          {
+            "name": "question",
+            "type": "string",
+            "internalType": "string"
+          },
+          {
+            "name": "evidenceUrls",
+            "type": "string[]",
+            "internalType": "string[]"
+          },
+          {
+            "name": "premium",
+            "type": "uint256",
+            "internalType": "uint256"
+          },
+          {
+            "name": "maxParticipants",
+            "type": "uint256",
+            "internalType": "uint256"
+          },
+          {
+            "name": "participantCount",
+            "type": "uint256",
+            "internalType": "uint256"
+          },
+          {
+            "name": "verdictId",
+            "type": "uint256",
+            "internalType": "uint256"
+          },
+          {
+            "name": "resolved",
+            "type": "bool",
+            "internalType": "bool"
+          },
+          {
+            "name": "outcome",
+            "type": "bool",
+            "internalType": "bool"
+          },
+          {
+            "name": "perParticipant",
+            "type": "uint256",
+            "internalType": "uint256"
+          },
+          {
+            "name": "createdAt",
+            "type": "uint256",
+            "internalType": "uint256"
+          },
+          {
+            "name": "creator",
+            "type": "address",
+            "internalType": "address"
+          },
+          {
+            "name": "resolveAfter",
+            "type": "uint256",
+            "internalType": "uint256"
+          }
+        ]
+      }
+    ],
+    "stateMutability": "view"
+  },
+  {
+    "type": "function",
+    "name": "hasClaimed",
+    "inputs": [
+      {
+        "name": "",
+        "type": "uint256",
+        "internalType": "uint256"
+      },
+      {
+        "name": "",
+        "type": "address",
+        "internalType": "address"
+      }
+    ],
+    "outputs": [
+      {
+        "name": "",
+        "type": "bool",
+        "internalType": "bool"
+      }
+    ],
+    "stateMutability": "view"
+  },
+  {
+    "type": "function",
+    "name": "isParticipant",
+    "inputs": [
+      {
+        "name": "",
+        "type": "uint256",
+        "internalType": "uint256"
+      },
+      {
+        "name": "",
+        "type": "address",
+        "internalType": "address"
+      }
+    ],
+    "outputs": [
+      {
+        "name": "",
+        "type": "bool",
+        "internalType": "bool"
+      }
+    ],
+    "stateMutability": "view"
+  },
+  {
+    "type": "function",
+    "name": "joinPolicy",
+    "inputs": [
+      {
+        "name": "policyId",
+        "type": "uint256",
+        "internalType": "uint256"
+      }
+    ],
+    "outputs": [],
+    "stateMutability": "payable"
+  },
+  {
+    "type": "function",
+    "name": "nextPolicyId",
+    "inputs": [],
+    "outputs": [
+      {
+        "name": "",
+        "type": "uint256",
+        "internalType": "uint256"
+      }
+    ],
+    "stateMutability": "view"
+  },
+  {
+    "type": "function",
+    "name": "policies",
+    "inputs": [
+      {
+        "name": "",
+        "type": "uint256",
+        "internalType": "uint256"
+      }
+    ],
+    "outputs": [
+      {
+        "name": "question",
+        "type": "string",
+        "internalType": "string"
+      },
+      {
+        "name": "premium",
+        "type": "uint256",
+        "internalType": "uint256"
+      },
+      {
+        "name": "maxParticipants",
+        "type": "uint256",
+        "internalType": "uint256"
+      },
+      {
+        "name": "participantCount",
+        "type": "uint256",
+        "internalType": "uint256"
+      },
+      {
+        "name": "verdictId",
+        "type": "uint256",
+        "internalType": "uint256"
+      },
+      {
+        "name": "resolved",
+        "type": "bool",
+        "internalType": "bool"
+      },
+      {
+        "name": "outcome",
+        "type": "bool",
+        "internalType": "bool"
+      },
+      {
+        "name": "perParticipant",
+        "type": "uint256",
+        "internalType": "uint256"
+      },
+      {
+        "name": "createdAt",
+        "type": "uint256",
+        "internalType": "uint256"
+      },
+      {
+        "name": "creator",
+        "type": "address",
+        "internalType": "address"
+      },
+      {
+        "name": "resolveAfter",
+        "type": "uint256",
+        "internalType": "uint256"
+      }
+    ],
+    "stateMutability": "view"
+  },
+  {
+    "type": "function",
+    "name": "poolBalance",
+    "inputs": [
+      {
+        "name": "",
+        "type": "uint256",
+        "internalType": "uint256"
+      }
+    ],
+    "outputs": [
+      {
+        "name": "",
+        "type": "uint256",
+        "internalType": "uint256"
+      }
+    ],
+    "stateMutability": "view"
+  },
+  {
+    "type": "function",
+    "name": "resolvePolicy",
+    "inputs": [
+      {
+        "name": "policyId",
+        "type": "uint256",
+        "internalType": "uint256"
+      }
+    ],
+    "outputs": [],
+    "stateMutability": "nonpayable"
+  },
+  {
+    "type": "function",
+    "name": "triggerResolution",
+    "inputs": [
+      {
+        "name": "policyId",
+        "type": "uint256",
+        "internalType": "uint256"
+      }
+    ],
+    "outputs": [],
+    "stateMutability": "payable"
+  },
+  {
+    "type": "function",
+    "name": "veritas",
+    "inputs": [],
+    "outputs": [
+      {
+        "name": "",
+        "type": "address",
+        "internalType": "contract IVeritas"
+      }
+    ],
+    "stateMutability": "view"
+  },
+  {
+    "type": "event",
+    "name": "PayoutClaimed",
+    "inputs": [
+      {
+        "name": "policyId",
+        "type": "uint256",
+        "indexed": true,
+        "internalType": "uint256"
+      },
+      {
+        "name": "participant",
+        "type": "address",
+        "indexed": true,
+        "internalType": "address"
+      },
+      {
+        "name": "amount",
+        "type": "uint256",
+        "indexed": false,
+        "internalType": "uint256"
+      }
+    ],
+    "anonymous": false
+  },
+  {
+    "type": "event",
+    "name": "PolicyCreated",
+    "inputs": [
+      {
+        "name": "policyId",
+        "type": "uint256",
+        "indexed": true,
+        "internalType": "uint256"
+      },
+      {
+        "name": "question",
+        "type": "string",
+        "indexed": false,
+        "internalType": "string"
+      },
+      {
+        "name": "premium",
+        "type": "uint256",
+        "indexed": false,
+        "internalType": "uint256"
+      },
+      {
+        "name": "resolveAfter",
+        "type": "uint256",
+        "indexed": false,
+        "internalType": "uint256"
+      }
+    ],
+    "anonymous": false
+  },
+  {
+    "type": "event",
+    "name": "PolicyJoined",
+    "inputs": [
+      {
+        "name": "policyId",
+        "type": "uint256",
+        "indexed": true,
+        "internalType": "uint256"
+      },
+      {
+        "name": "participant",
+        "type": "address",
+        "indexed": true,
+        "internalType": "address"
+      }
+    ],
+    "anonymous": false
+  },
+  {
+    "type": "event",
+    "name": "PolicyResolved",
+    "inputs": [
+      {
+        "name": "policyId",
+        "type": "uint256",
+        "indexed": true,
+        "internalType": "uint256"
+      },
+      {
+        "name": "outcome",
+        "type": "bool",
+        "indexed": false,
+        "internalType": "bool"
+      }
+    ],
+    "anonymous": false
+  },
+  {
+    "type": "event",
+    "name": "ResolutionTriggered",
+    "inputs": [
+      {
+        "name": "policyId",
+        "type": "uint256",
+        "indexed": true,
+        "internalType": "uint256"
+      },
+      {
+        "name": "verdictId",
+        "type": "uint256",
+        "indexed": false,
+        "internalType": "uint256"
+      }
+    ],
+    "anonymous": false
+  },
+  {
+    "type": "error",
+    "name": "AlreadyClaimed",
+    "inputs": []
+  },
+  {
+    "type": "error",
+    "name": "AlreadyJoined",
+    "inputs": []
+  },
+  {
+    "type": "error",
+    "name": "AlreadyTriggered",
+    "inputs": []
+  },
+  {
+    "type": "error",
+    "name": "InsufficientPoolFunding",
+    "inputs": []
+  },
+  {
+    "type": "error",
+    "name": "InsufficientPremium",
+    "inputs": []
+  },
+  {
+    "type": "error",
+    "name": "JoinWindowClosed",
+    "inputs": []
+  },
+  {
+    "type": "error",
+    "name": "JoinWindowOpen",
+    "inputs": []
+  },
+  {
+    "type": "error",
+    "name": "NoPayout",
+    "inputs": []
+  },
+  {
+    "type": "error",
+    "name": "NotParticipant",
+    "inputs": []
+  },
+  {
+    "type": "error",
+    "name": "NotResolved",
+    "inputs": []
+  },
+  {
+    "type": "error",
+    "name": "PolicyAlreadyResolved",
+    "inputs": []
+  },
+  {
+    "type": "error",
+    "name": "PolicyFull",
+    "inputs": []
+  }
 ] as const;

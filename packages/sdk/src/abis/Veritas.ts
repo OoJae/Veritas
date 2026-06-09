@@ -1,154 +1,854 @@
 export const veritasAbi = [
   {
-    type: "constructor",
-    inputs: [{ name: "_platform", type: "address", internalType: "address" }],
-    stateMutability: "nonpayable",
-  },
-  { type: "receive", stateMutability: "payable" },
-  {
-    type: "function",
-    name: "getVerdict",
-    inputs: [{ name: "verdictId", type: "uint256", internalType: "uint256" }],
-    outputs: [
+    "type": "constructor",
+    "inputs": [
       {
-        name: "",
-        type: "tuple",
-        internalType: "struct Verdict",
-        components: [
-          { name: "requester", type: "address" },
-          { name: "question", type: "string" },
-          { name: "evidenceUrls", type: "string[]" },
-          { name: "mode", type: "uint8" },
-          { name: "payoutTarget", type: "address" },
-          { name: "payoutCalldata", type: "bytes" },
-          { name: "stage", type: "uint8" },
-          { name: "deadline", type: "uint256" },
-          { name: "evidenceCursor", type: "uint256" },
-          { name: "gatheredEvidence", type: "string[]" },
-          { name: "result", type: "bool" },
-          { name: "confidence", type: "uint8" },
-          { name: "reasoningRef", type: "bytes32" },
-          { name: "lastRequestId", type: "uint256" },
-        ],
+        "name": "_platform",
+        "type": "address",
+        "internalType": "address"
+      }
+    ],
+    "stateMutability": "nonpayable"
+  },
+  {
+    "type": "receive",
+    "stateMutability": "payable"
+  },
+  {
+    "type": "function",
+    "name": "ADVANCED_SUBCOMMITTEE_SIZE",
+    "inputs": [],
+    "outputs": [
+      {
+        "name": "",
+        "type": "uint256",
+        "internalType": "uint256"
+      }
+    ],
+    "stateMutability": "view"
+  },
+  {
+    "type": "function",
+    "name": "ADVANCED_THRESHOLD",
+    "inputs": [],
+    "outputs": [
+      {
+        "name": "",
+        "type": "uint256",
+        "internalType": "uint256"
+      }
+    ],
+    "stateMutability": "view"
+  },
+  {
+    "type": "function",
+    "name": "ADVANCED_TIMEOUT",
+    "inputs": [],
+    "outputs": [
+      {
+        "name": "",
+        "type": "uint256",
+        "internalType": "uint256"
+      }
+    ],
+    "stateMutability": "view"
+  },
+  {
+    "type": "function",
+    "name": "DEFAULT_DEADLINE_BUFFER",
+    "inputs": [],
+    "outputs": [
+      {
+        "name": "",
+        "type": "uint256",
+        "internalType": "uint256"
+      }
+    ],
+    "stateMutability": "view"
+  },
+  {
+    "type": "function",
+    "name": "MAX_EVIDENCE_URLS",
+    "inputs": [],
+    "outputs": [
+      {
+        "name": "",
+        "type": "uint256",
+        "internalType": "uint256"
+      }
+    ],
+    "stateMutability": "view"
+  },
+  {
+    "type": "function",
+    "name": "getVerdict",
+    "inputs": [
+      {
+        "name": "verdictId",
+        "type": "uint256",
+        "internalType": "uint256"
+      }
+    ],
+    "outputs": [
+      {
+        "name": "",
+        "type": "tuple",
+        "internalType": "struct Verdict",
+        "components": [
+          {
+            "name": "requester",
+            "type": "address",
+            "internalType": "address"
+          },
+          {
+            "name": "question",
+            "type": "string",
+            "internalType": "string"
+          },
+          {
+            "name": "evidenceUrls",
+            "type": "string[]",
+            "internalType": "string[]"
+          },
+          {
+            "name": "mode",
+            "type": "uint8",
+            "internalType": "enum VerdictMode"
+          },
+          {
+            "name": "payoutTarget",
+            "type": "address",
+            "internalType": "address"
+          },
+          {
+            "name": "payoutCalldata",
+            "type": "bytes",
+            "internalType": "bytes"
+          },
+          {
+            "name": "stage",
+            "type": "uint8",
+            "internalType": "enum Stage"
+          },
+          {
+            "name": "deadline",
+            "type": "uint256",
+            "internalType": "uint256"
+          },
+          {
+            "name": "evidenceCursor",
+            "type": "uint256",
+            "internalType": "uint256"
+          },
+          {
+            "name": "gatheredEvidence",
+            "type": "string[]",
+            "internalType": "string[]"
+          },
+          {
+            "name": "result",
+            "type": "bool",
+            "internalType": "bool"
+          },
+          {
+            "name": "confidence",
+            "type": "uint8",
+            "internalType": "uint8"
+          },
+          {
+            "name": "reasoningRef",
+            "type": "bytes32",
+            "internalType": "bytes32"
+          },
+          {
+            "name": "lastRequestId",
+            "type": "uint256",
+            "internalType": "uint256"
+          }
+        ]
+      }
+    ],
+    "stateMutability": "view"
+  },
+  {
+    "type": "function",
+    "name": "handleResponse",
+    "inputs": [
+      {
+        "name": "requestId",
+        "type": "uint256",
+        "internalType": "uint256"
       },
+      {
+        "name": "responses",
+        "type": "tuple[]",
+        "internalType": "struct Response[]",
+        "components": [
+          {
+            "name": "validator",
+            "type": "address",
+            "internalType": "address"
+          },
+          {
+            "name": "result",
+            "type": "bytes",
+            "internalType": "bytes"
+          },
+          {
+            "name": "status",
+            "type": "uint8",
+            "internalType": "enum ResponseStatus"
+          },
+          {
+            "name": "receipt",
+            "type": "uint256",
+            "internalType": "uint256"
+          },
+          {
+            "name": "timestamp",
+            "type": "uint256",
+            "internalType": "uint256"
+          },
+          {
+            "name": "executionCost",
+            "type": "uint256",
+            "internalType": "uint256"
+          }
+        ]
+      },
+      {
+        "name": "status",
+        "type": "uint8",
+        "internalType": "enum ResponseStatus"
+      },
+      {
+        "name": "",
+        "type": "tuple",
+        "internalType": "struct Request",
+        "components": [
+          {
+            "name": "id",
+            "type": "uint256",
+            "internalType": "uint256"
+          },
+          {
+            "name": "requester",
+            "type": "address",
+            "internalType": "address"
+          },
+          {
+            "name": "callbackAddress",
+            "type": "address",
+            "internalType": "address"
+          },
+          {
+            "name": "callbackSelector",
+            "type": "bytes4",
+            "internalType": "bytes4"
+          },
+          {
+            "name": "subcommittee",
+            "type": "address[]",
+            "internalType": "address[]"
+          },
+          {
+            "name": "responses",
+            "type": "tuple[]",
+            "internalType": "struct Response[]",
+            "components": [
+              {
+                "name": "validator",
+                "type": "address",
+                "internalType": "address"
+              },
+              {
+                "name": "result",
+                "type": "bytes",
+                "internalType": "bytes"
+              },
+              {
+                "name": "status",
+                "type": "uint8",
+                "internalType": "enum ResponseStatus"
+              },
+              {
+                "name": "receipt",
+                "type": "uint256",
+                "internalType": "uint256"
+              },
+              {
+                "name": "timestamp",
+                "type": "uint256",
+                "internalType": "uint256"
+              },
+              {
+                "name": "executionCost",
+                "type": "uint256",
+                "internalType": "uint256"
+              }
+            ]
+          },
+          {
+            "name": "responseCount",
+            "type": "uint256",
+            "internalType": "uint256"
+          },
+          {
+            "name": "failureCount",
+            "type": "uint256",
+            "internalType": "uint256"
+          },
+          {
+            "name": "threshold",
+            "type": "uint256",
+            "internalType": "uint256"
+          },
+          {
+            "name": "createdAt",
+            "type": "uint256",
+            "internalType": "uint256"
+          },
+          {
+            "name": "deadline",
+            "type": "uint256",
+            "internalType": "uint256"
+          },
+          {
+            "name": "status",
+            "type": "uint8",
+            "internalType": "enum ResponseStatus"
+          },
+          {
+            "name": "consensusType",
+            "type": "uint8",
+            "internalType": "enum ConsensusType"
+          },
+          {
+            "name": "remainingBudget",
+            "type": "uint256",
+            "internalType": "uint256"
+          },
+          {
+            "name": "perAgentBudget",
+            "type": "uint256",
+            "internalType": "uint256"
+          }
+        ]
+      }
     ],
-    stateMutability: "view",
+    "outputs": [],
+    "stateMutability": "nonpayable"
   },
   {
-    type: "function",
-    name: "requestVerdict",
-    inputs: [
-      { name: "question", type: "string" },
-      { name: "evidenceUrls", type: "string[]" },
-      { name: "mode", type: "uint8" },
-      { name: "payoutTarget", type: "address" },
-      { name: "payoutCalldata", type: "bytes" },
+    "type": "function",
+    "name": "nextVerdictId",
+    "inputs": [],
+    "outputs": [
+      {
+        "name": "",
+        "type": "uint256",
+        "internalType": "uint256"
+      }
     ],
-    outputs: [{ name: "verdictId", type: "uint256" }],
-    stateMutability: "payable",
+    "stateMutability": "view"
   },
   {
-    type: "function",
-    name: "quoteVerdict",
-    inputs: [
-      { name: "mode", type: "uint8" },
-      { name: "numEvidenceUrls", type: "uint256" },
+    "type": "function",
+    "name": "onEvent",
+    "inputs": [
+      {
+        "name": "emitter",
+        "type": "address",
+        "internalType": "address"
+      },
+      {
+        "name": "eventTopics",
+        "type": "bytes32[]",
+        "internalType": "bytes32[]"
+      },
+      {
+        "name": "data",
+        "type": "bytes",
+        "internalType": "bytes"
+      }
     ],
-    outputs: [{ name: "", type: "uint256" }],
-    stateMutability: "view",
+    "outputs": [],
+    "stateMutability": "nonpayable"
   },
   {
-    type: "function",
-    name: "poke",
-    inputs: [{ name: "verdictId", type: "uint256" }],
-    outputs: [],
-    stateMutability: "nonpayable",
-  },
-  {
-    type: "function",
-    name: "requestToVerdict",
-    inputs: [{ name: "", type: "uint256" }],
-    outputs: [{ name: "", type: "uint256" }],
-    stateMutability: "view",
-  },
-  {
-    type: "event",
-    name: "VerdictRequested",
-    inputs: [
-      { name: "verdictId", type: "uint256", indexed: true },
-      { name: "requester", type: "address", indexed: true },
-      { name: "question", type: "string", indexed: false },
+    "type": "function",
+    "name": "platform",
+    "inputs": [],
+    "outputs": [
+      {
+        "name": "",
+        "type": "address",
+        "internalType": "contract IAgentRequester"
+      }
     ],
+    "stateMutability": "view"
   },
   {
-    type: "event",
-    name: "VerdictResolved",
-    inputs: [
-      { name: "verdictId", type: "uint256", indexed: true },
-      { name: "result", type: "bool", indexed: false },
-      { name: "confidence", type: "uint8", indexed: false },
+    "type": "function",
+    "name": "poke",
+    "inputs": [
+      {
+        "name": "verdictId",
+        "type": "uint256",
+        "internalType": "uint256"
+      }
     ],
+    "outputs": [],
+    "stateMutability": "nonpayable"
   },
   {
-    type: "event",
-    name: "VerdictFailed",
-    inputs: [
-      { name: "verdictId", type: "uint256", indexed: true },
-      { name: "reason", type: "string", indexed: false },
+    "type": "function",
+    "name": "quoteVerdict",
+    "inputs": [
+      {
+        "name": "mode",
+        "type": "uint8",
+        "internalType": "enum VerdictMode"
+      },
+      {
+        "name": "numEvidenceUrls",
+        "type": "uint256",
+        "internalType": "uint256"
+      }
     ],
-  },
-  {
-    type: "event",
-    name: "VerdictPoked",
-    inputs: [
-      { name: "verdictId", type: "uint256", indexed: true },
+    "outputs": [
+      {
+        "name": "",
+        "type": "uint256",
+        "internalType": "uint256"
+      }
     ],
+    "stateMutability": "pure"
   },
   {
-    type: "event",
-    name: "CallbackFailed",
-    inputs: [
-      { name: "verdictId", type: "uint256", indexed: true },
-      { name: "payoutTarget", type: "address", indexed: false },
+    "type": "function",
+    "name": "requestToVerdict",
+    "inputs": [
+      {
+        "name": "",
+        "type": "uint256",
+        "internalType": "uint256"
+      }
     ],
-  },
-  {
-    type: "function",
-    name: "nextVerdictId",
-    inputs: [],
-    outputs: [{ name: "", type: "uint256" }],
-    stateMutability: "view",
-  },
-  {
-    type: "function",
-    name: "verdictToSubscription",
-    inputs: [{ name: "", type: "uint256" }],
-    outputs: [{ name: "", type: "uint256" }],
-    stateMutability: "view",
-  },
-  {
-    type: "function",
-    name: "timestampToVerdictId",
-    inputs: [{ name: "", type: "uint256" }],
-    outputs: [{ name: "", type: "uint256" }],
-    stateMutability: "view",
-  },
-  {
-    type: "function",
-    name: "onEvent",
-    inputs: [
-      { name: "emitter", type: "address" },
-      { name: "eventTopics", type: "bytes32[]" },
-      { name: "data", type: "bytes" },
+    "outputs": [
+      {
+        "name": "",
+        "type": "uint256",
+        "internalType": "uint256"
+      }
     ],
-    outputs: [],
-    stateMutability: "nonpayable",
+    "stateMutability": "view"
   },
   {
-    type: "function",
-    name: "supportsInterface",
-    inputs: [{ name: "interfaceId", type: "bytes4" }],
-    outputs: [{ name: "", type: "bool" }],
-    stateMutability: "view",
+    "type": "function",
+    "name": "requestVerdict",
+    "inputs": [
+      {
+        "name": "question",
+        "type": "string",
+        "internalType": "string"
+      },
+      {
+        "name": "evidenceUrls",
+        "type": "string[]",
+        "internalType": "string[]"
+      },
+      {
+        "name": "mode",
+        "type": "uint8",
+        "internalType": "enum VerdictMode"
+      },
+      {
+        "name": "payoutTarget",
+        "type": "address",
+        "internalType": "address"
+      },
+      {
+        "name": "payoutCalldata",
+        "type": "bytes",
+        "internalType": "bytes"
+      }
+    ],
+    "outputs": [
+      {
+        "name": "verdictId",
+        "type": "uint256",
+        "internalType": "uint256"
+      }
+    ],
+    "stateMutability": "payable"
   },
+  {
+    "type": "function",
+    "name": "supportsInterface",
+    "inputs": [
+      {
+        "name": "interfaceId",
+        "type": "bytes4",
+        "internalType": "bytes4"
+      }
+    ],
+    "outputs": [
+      {
+        "name": "",
+        "type": "bool",
+        "internalType": "bool"
+      }
+    ],
+    "stateMutability": "pure"
+  },
+  {
+    "type": "function",
+    "name": "timestampToVerdictId",
+    "inputs": [
+      {
+        "name": "",
+        "type": "uint256",
+        "internalType": "uint256"
+      }
+    ],
+    "outputs": [
+      {
+        "name": "",
+        "type": "uint256",
+        "internalType": "uint256"
+      }
+    ],
+    "stateMutability": "view"
+  },
+  {
+    "type": "function",
+    "name": "verdictToSubscription",
+    "inputs": [
+      {
+        "name": "",
+        "type": "uint256",
+        "internalType": "uint256"
+      }
+    ],
+    "outputs": [
+      {
+        "name": "",
+        "type": "uint256",
+        "internalType": "uint256"
+      }
+    ],
+    "stateMutability": "view"
+  },
+  {
+    "type": "function",
+    "name": "verdicts",
+    "inputs": [
+      {
+        "name": "",
+        "type": "uint256",
+        "internalType": "uint256"
+      }
+    ],
+    "outputs": [
+      {
+        "name": "requester",
+        "type": "address",
+        "internalType": "address"
+      },
+      {
+        "name": "question",
+        "type": "string",
+        "internalType": "string"
+      },
+      {
+        "name": "mode",
+        "type": "uint8",
+        "internalType": "enum VerdictMode"
+      },
+      {
+        "name": "payoutTarget",
+        "type": "address",
+        "internalType": "address"
+      },
+      {
+        "name": "payoutCalldata",
+        "type": "bytes",
+        "internalType": "bytes"
+      },
+      {
+        "name": "stage",
+        "type": "uint8",
+        "internalType": "enum Stage"
+      },
+      {
+        "name": "deadline",
+        "type": "uint256",
+        "internalType": "uint256"
+      },
+      {
+        "name": "evidenceCursor",
+        "type": "uint256",
+        "internalType": "uint256"
+      },
+      {
+        "name": "result",
+        "type": "bool",
+        "internalType": "bool"
+      },
+      {
+        "name": "confidence",
+        "type": "uint8",
+        "internalType": "uint8"
+      },
+      {
+        "name": "reasoningRef",
+        "type": "bytes32",
+        "internalType": "bytes32"
+      },
+      {
+        "name": "lastRequestId",
+        "type": "uint256",
+        "internalType": "uint256"
+      }
+    ],
+    "stateMutability": "view"
+  },
+  {
+    "type": "event",
+    "name": "CallbackFailed",
+    "inputs": [
+      {
+        "name": "verdictId",
+        "type": "uint256",
+        "indexed": true,
+        "internalType": "uint256"
+      },
+      {
+        "name": "payoutTarget",
+        "type": "address",
+        "indexed": false,
+        "internalType": "address"
+      }
+    ],
+    "anonymous": false
+  },
+  {
+    "type": "event",
+    "name": "EvidenceGathered",
+    "inputs": [
+      {
+        "name": "verdictId",
+        "type": "uint256",
+        "indexed": true,
+        "internalType": "uint256"
+      },
+      {
+        "name": "index",
+        "type": "uint256",
+        "indexed": false,
+        "internalType": "uint256"
+      },
+      {
+        "name": "summary",
+        "type": "string",
+        "indexed": false,
+        "internalType": "string"
+      }
+    ],
+    "anonymous": false
+  },
+  {
+    "type": "event",
+    "name": "VerdictFailed",
+    "inputs": [
+      {
+        "name": "verdictId",
+        "type": "uint256",
+        "indexed": true,
+        "internalType": "uint256"
+      },
+      {
+        "name": "reason",
+        "type": "string",
+        "indexed": false,
+        "internalType": "string"
+      }
+    ],
+    "anonymous": false
+  },
+  {
+    "type": "event",
+    "name": "VerdictPoked",
+    "inputs": [
+      {
+        "name": "verdictId",
+        "type": "uint256",
+        "indexed": true,
+        "internalType": "uint256"
+      }
+    ],
+    "anonymous": false
+  },
+  {
+    "type": "event",
+    "name": "VerdictRequested",
+    "inputs": [
+      {
+        "name": "verdictId",
+        "type": "uint256",
+        "indexed": true,
+        "internalType": "uint256"
+      },
+      {
+        "name": "requester",
+        "type": "address",
+        "indexed": true,
+        "internalType": "address"
+      },
+      {
+        "name": "mode",
+        "type": "uint8",
+        "indexed": false,
+        "internalType": "enum VerdictMode"
+      },
+      {
+        "name": "question",
+        "type": "string",
+        "indexed": false,
+        "internalType": "string"
+      }
+    ],
+    "anonymous": false
+  },
+  {
+    "type": "event",
+    "name": "VerdictResolved",
+    "inputs": [
+      {
+        "name": "verdictId",
+        "type": "uint256",
+        "indexed": true,
+        "internalType": "uint256"
+      },
+      {
+        "name": "result",
+        "type": "bool",
+        "indexed": false,
+        "internalType": "bool"
+      },
+      {
+        "name": "confidence",
+        "type": "uint8",
+        "indexed": false,
+        "internalType": "uint8"
+      },
+      {
+        "name": "reasoningRef",
+        "type": "bytes32",
+        "indexed": false,
+        "internalType": "bytes32"
+      }
+    ],
+    "anonymous": false
+  },
+  {
+    "type": "error",
+    "name": "DeadlineNotPassed",
+    "inputs": []
+  },
+  {
+    "type": "error",
+    "name": "EmptyFilter",
+    "inputs": []
+  },
+  {
+    "type": "error",
+    "name": "GasLimitExceeded",
+    "inputs": []
+  },
+  {
+    "type": "error",
+    "name": "GasLimitZero",
+    "inputs": []
+  },
+  {
+    "type": "error",
+    "name": "HandlerZeroAddress",
+    "inputs": []
+  },
+  {
+    "type": "error",
+    "name": "InsufficientBalance",
+    "inputs": []
+  },
+  {
+    "type": "error",
+    "name": "InsufficientPayment",
+    "inputs": [
+      {
+        "name": "required",
+        "type": "uint256",
+        "internalType": "uint256"
+      },
+      {
+        "name": "sent",
+        "type": "uint256",
+        "internalType": "uint256"
+      }
+    ]
+  },
+  {
+    "type": "error",
+    "name": "InvalidMaxFeePerGas",
+    "inputs": []
+  },
+  {
+    "type": "error",
+    "name": "OnlyPlatform",
+    "inputs": []
+  },
+  {
+    "type": "error",
+    "name": "OnlyReactivityPrecompile",
+    "inputs": []
+  },
+  {
+    "type": "error",
+    "name": "TimestampInPast",
+    "inputs": []
+  },
+  {
+    "type": "error",
+    "name": "TooManyEvidenceUrls",
+    "inputs": [
+      {
+        "name": "count",
+        "type": "uint256",
+        "internalType": "uint256"
+      }
+    ]
+  },
+  {
+    "type": "error",
+    "name": "UnknownRequest",
+    "inputs": [
+      {
+        "name": "requestId",
+        "type": "uint256",
+        "internalType": "uint256"
+      }
+    ]
+  },
+  {
+    "type": "error",
+    "name": "VerdictNotPending",
+    "inputs": [
+      {
+        "name": "verdictId",
+        "type": "uint256",
+        "internalType": "uint256"
+      }
+    ]
+  }
 ] as const;

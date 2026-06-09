@@ -6,10 +6,10 @@ import { disputeArbiterAbi } from "./abis/DisputeArbiter";
 export const VERITAS_ADDRESSES = {
   testnet: {
     platform: "0x037Bb9C718F3f7fe5eCBDB0b600D607b52706776" as const,
-    veritas: "0x702969d634b103f26F859aE658cD0405aa510FE3" as const,
-    predictionMarket: "0x3BB03e11f82ce723F033cC2A47176dba326EC7C6" as const,
-    insuranceVault: "0xE10caF9F4F8a62F289306990a801E0c26be4f347" as const,
-    disputeArbiter: "0x5953449B12dF9bDC820E0C61Af526d0686030E11" as const,
+    veritas: "0x519EEEe5216a5FcfC421BF5a51A4D54076dc6539" as const,
+    predictionMarket: "0x064C4AFbB0Bba2F13991665D9E6C47Da94B46D8d" as const,
+    insuranceVault: "0x7958378c6b7080Aca9938d4b69D4eBa512c5984d" as const,
+    disputeArbiter: "0x71bbc8B81e620D2458421362E2b6D9B9f7D6006b" as const,
   },
 } as const;
 

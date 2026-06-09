@@ -167,11 +167,17 @@ export default function MarketDetailPage({ params }: { params: Promise<{ id: str
                 </div>
               )}
 
-              {/* Failed */}
-              {stage === 4 && (
+              {/* Failed — allow retry (scrape flakiness is random; a re-fire usually lands) */}
+              {stage === 4 && !market.resolved && (
                 <div style={{ marginTop: 16, padding: 16, borderRadius: 12, border: "1px solid var(--line)", background: "var(--panel)" }}>
-                  <p style={{ fontFamily: "var(--mono)", fontSize: 12, color: "var(--stone-400)", margin: 0 }}>
-                    {failureReason ?? "No failure reason available."}
+                  <p style={{ fontFamily: "var(--mono)", fontSize: 12, color: "var(--stone-400)", margin: "0 0 12px" }}>
+                    {failureReason ?? "The agent could not resolve this verdict (often a flaky source)."}
+                  </p>
+                  <button className="b b--gold b--lg" onClick={() => triggerResolution()} disabled={triggerPending || triggerConfirming}>
+                    {triggerPending ? "Confirm in wallet..." : triggerConfirming ? "Retrying..." : "Retry resolution"} <span>↗</span>
+                  </button>
+                  <p style={{ fontFamily: "var(--mono)", fontSize: 11, color: "var(--stone-500)", margin: "12px 0 0", letterSpacing: "0.04em" }}>
+                    Re-runs the AI verdict on a fresh 5-validator subcommittee. Anyone can retry by paying the resolution fee.
                   </p>
                 </div>
               )}

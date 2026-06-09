@@ -117,6 +117,42 @@ contract MockAgentRequester is IAgentRequester {
         require(success, "callback failed");
     }
 
+    /// @notice Simulate an advanced multi-validator response. Each entry is either
+    ///         Success (with its result bytes) or Failed (an errored scrape), so a
+    ///         consumer's aggregation logic can be exercised.
+    function simulateAdvancedResponse(
+        uint256 requestId,
+        bytes[] calldata results,
+        bool[] calldata success,
+        uint256 receipt
+    ) external {
+        StoredRequest memory sr = storedRequests[requestId];
+        require(sr.callbackAddress != address(0), "request not found");
+        require(results.length == success.length, "length mismatch");
+
+        Response[] memory responses = new Response[](results.length);
+        for (uint256 i = 0; i < results.length; i++) {
+            responses[i] = Response({
+                validator: address(uint160(i + 1)),
+                result: results[i],
+                status: success[i] ? ResponseStatus.Success : ResponseStatus.Failed,
+                receipt: receipt,
+                timestamp: block.timestamp,
+                executionCost: 0
+            });
+        }
+
+        Request memory req;
+        req.id = requestId;
+        req.requester = msg.sender;
+        req.status = ResponseStatus.Success;
+
+        (bool ok,) = sr.callbackAddress.call(
+            abi.encodeWithSelector(sr.callbackSelector, requestId, responses, ResponseStatus.Success, req)
+        );
+        require(ok, "callback failed");
+    }
+
     /// @notice Simulate a failed response.
     function simulateFailure(uint256 requestId, ResponseStatus failureStatus) external {
         StoredRequest memory sr = storedRequests[requestId];

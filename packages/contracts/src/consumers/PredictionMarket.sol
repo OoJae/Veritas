@@ -2,7 +2,7 @@
 pragma solidity ^0.8.24;
 
 import {IVeritas, VerdictMode} from "../interfaces/IVeritas.sol";
-import {Verdict} from "../types/VeritasTypes.sol";
+import {Verdict, Stage} from "../types/VeritasTypes.sol";
 
 /// @title PredictionMarket
 /// @notice Users stake YES or NO on a question. Veritas resolves it.
@@ -88,8 +88,13 @@ contract PredictionMarket {
     function triggerResolution(uint256 marketId) external payable {
         Market storage m = markets[marketId];
         require(block.timestamp >= m.resolveAfter, "betting still open");
-        require(m.verdictId == 0, "already triggered");
         require(!m.resolved, "already resolved");
+        // Allow a first trigger, or a retry if the previous verdict failed
+        // (validator scrapes are flaky; a re-fire usually lands).
+        require(
+            m.verdictId == 0 || veritas.getVerdict(m.verdictId).stage == Stage.Failed,
+            "resolution in progress"
+        );
 
         bytes memory payoutCalldata = abi.encodeWithSelector(
             PredictionMarket.resolveMarket.selector,

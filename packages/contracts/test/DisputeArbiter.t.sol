@@ -105,7 +105,7 @@ contract DisputeArbiterTest is Test {
         arbiter.submitEvidence(disputeId, urls);
 
         // Anyone triggers resolution with verdict fee
-        arbiter.resolveDispute{value: 0.33 ether}(disputeId);
+        arbiter.resolveDispute{value: 0.55 ether}(disputeId);
 
         // Simulate YES verdict (claimant wins) - requestId 1
         platform.simulateResponse(1, abi.encode("YES"), 42);
@@ -129,7 +129,7 @@ contract DisputeArbiterTest is Test {
         vm.prank(respondent);
         arbiter.submitEvidence(disputeId, urls);
 
-        arbiter.resolveDispute{value: 0.33 ether}(disputeId);
+        arbiter.resolveDispute{value: 0.55 ether}(disputeId);
 
         // Simulate NO verdict (respondent wins)
         platform.simulateResponse(1, abi.encode("NO"), 42);
@@ -152,7 +152,7 @@ contract DisputeArbiterTest is Test {
         vm.prank(respondent);
         arbiter.submitEvidence(disputeId, urls);
 
-        arbiter.resolveDispute{value: 0.33 ether}(disputeId);
+        arbiter.resolveDispute{value: 0.55 ether}(disputeId);
         platform.simulateResponse(1, abi.encode("YES"), 42);
 
         vm.prank(claimant);
@@ -171,7 +171,7 @@ contract DisputeArbiterTest is Test {
         vm.prank(respondent);
         arbiter.submitEvidence(disputeId, urls);
 
-        arbiter.resolveDispute{value: 0.33 ether}(disputeId);
+        arbiter.resolveDispute{value: 0.55 ether}(disputeId);
         platform.simulateResponse(1, abi.encode("YES"), 42);
 
         vm.expectRevert(DisputeArbiter.AlreadyResolved.selector);

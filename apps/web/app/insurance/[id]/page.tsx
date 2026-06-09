@@ -131,12 +131,18 @@ export default function PolicyDetailPage({ params }: { params: Promise<{ id: str
               </div>
             )}
 
-            {/* Verdict failed */}
-            {verdict && stage === 4 && (
+            {/* Verdict failed — allow retry */}
+            {verdict && stage === 4 && !policy.resolved && (
               <div className="panel">
                 <div className="panel-h"><h3>Verdict Failed</h3></div>
-                <p style={{ fontFamily: "var(--mono)", fontSize: 12, color: "var(--stone-400)", margin: 0 }}>
-                  {failureReason ?? "No failure reason available."}
+                <p style={{ fontFamily: "var(--mono)", fontSize: 12, color: "var(--stone-400)", margin: "0 0 12px" }}>
+                  {failureReason ?? "The agent could not resolve this verdict (often a flaky source)."}
+                </p>
+                <button className="b b--gold b--lg" onClick={() => triggerResolution()} disabled={triggerPending || triggerConfirming}>
+                  {triggerPending ? "Confirm in wallet..." : triggerConfirming ? "Retrying..." : "Retry resolution"} <span>↗</span>
+                </button>
+                <p style={{ fontFamily: "var(--mono)", fontSize: 11, color: "var(--stone-500)", margin: "12px 0 0", letterSpacing: "0.04em" }}>
+                  Re-runs the AI verdict on a fresh 5-validator subcommittee.
                 </p>
               </div>
             )}

@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.24;
 
-import {IAgentRequester, ResponseStatus, Response, Request} from "./interfaces/IAgentRequester.sol";
+import {IAgentRequester, ConsensusType, ResponseStatus, Response, Request} from "./interfaces/IAgentRequester.sol";
 import {ILLMParseWebsite, ILLMInference, AgentIds, AgentPricing} from "./interfaces/IAgents.sol";
 import {IVeritas} from "./interfaces/IVeritas.sol";
 import {VerdictMode, Stage, Verdict} from "./types/VeritasTypes.sol";
@@ -20,6 +20,13 @@ contract Veritas is IVeritas, SomniaEventHandler {
     uint256 public nextVerdictId = 1;
     uint256 public constant MAX_EVIDENCE_URLS = 3;
     uint256 public constant DEFAULT_DEADLINE_BUFFER = 15 minutes;
+
+    // Consensus: a 5-validator subcommittee with a 3-of-5 threshold tolerates up
+    // to two bad scrapes (flaky/bot-protected sources) before a verdict fails.
+    // Responses are aggregated in the callback (majority vote of the successes).
+    uint256 public constant ADVANCED_SUBCOMMITTEE_SIZE = 5;
+    uint256 public constant ADVANCED_THRESHOLD = 3;
+    uint256 public constant ADVANCED_TIMEOUT = 300;
 
     mapping(uint256 => Verdict) public verdicts;
     mapping(uint256 => uint256) public requestToVerdict;
@@ -234,30 +241,76 @@ contract Veritas is IVeritas, SomniaEventHandler {
             uint8(50)
         );
 
-        uint256 reserve = platform.getRequestDeposit();
-        uint256 reward = AgentPricing.LLM_PARSE_WEBSITE_COST_PER_AGENT * AgentPricing.DEFAULT_SUBCOMMITTEE_SIZE;
+        _fireAgent(verdictId, AgentIds.LLM_PARSE_WEBSITE_ID, payload, AgentPricing.LLM_PARSE_WEBSITE_COST_PER_AGENT);
+    }
+
+    /// @notice Fire an advanced agent request (5-of-5 subcommittee, 3 threshold,
+    ///         Threshold consensus) and wire the request -> verdict mapping.
+    function _fireAgent(
+        uint256 verdictId,
+        uint256 agentId,
+        bytes memory payload,
+        uint256 agentPrice
+    ) internal {
+        uint256 reserve = platform.getAdvancedRequestDeposit(ADVANCED_SUBCOMMITTEE_SIZE);
+        uint256 reward = agentPrice * ADVANCED_SUBCOMMITTEE_SIZE;
         uint256 deposit = reserve + reward;
 
-        uint256 requestId = platform.createRequest{value: deposit}(
-            AgentIds.LLM_PARSE_WEBSITE_ID,
+        uint256 requestId = platform.createAdvancedRequest{value: deposit}(
+            agentId,
             address(this),
             this.handleResponse.selector,
-            payload
+            payload,
+            ADVANCED_SUBCOMMITTEE_SIZE,
+            ADVANCED_THRESHOLD,
+            ConsensusType.Threshold,
+            ADVANCED_TIMEOUT
         );
 
-        v.lastRequestId = requestId;
+        verdicts[verdictId].lastRequestId = requestId;
         requestToVerdict[requestId] = verdictId;
+    }
+
+    /// @notice Majority-vote the YES/NO answers across the successful validator
+    ///         responses. Returns whether any success existed, the winning side,
+    ///         the agreement confidence (winner share, 0-100), and a receipt.
+    function _aggregateYesNo(Response[] memory responses)
+        internal
+        pure
+        returns (bool hasResult, bool result, uint8 confidence, uint256 receiptPtr)
+    {
+        uint256 yes;
+        uint256 no;
+        for (uint256 i = 0; i < responses.length; i++) {
+            if (responses[i].status != ResponseStatus.Success) continue;
+            if (responses[i].result.length == 0) continue;
+            if (receiptPtr == 0) receiptPtr = responses[i].receipt;
+            if (_parseYesNo(abi.decode(responses[i].result, (string)))) {
+                yes++;
+            } else {
+                no++;
+            }
+        }
+        uint256 total = yes + no;
+        if (total == 0) return (false, false, 0, 0);
+        result = yes > no;
+        uint256 winner = yes > no ? yes : no;
+        confidence = uint8((winner * 100) / total);
+        return (true, result, confidence, receiptPtr);
     }
 
     function _handleSimpleResponse(
         uint256 verdictId,
         Response[] memory responses
     ) internal {
-        string memory answer = abi.decode(responses[0].result, (string));
-        bool result = _parseYesNo(answer);
-        uint256 receiptPtr = responses[0].receipt;
-
-        _resolve(verdictId, result, 80, receiptPtr);
+        (bool hasResult, bool result, uint8 confidence, uint256 receiptPtr) = _aggregateYesNo(responses);
+        if (!hasResult) {
+            verdicts[verdictId].stage = Stage.Failed;
+            emit VerdictFailed(verdictId, "no successful responses");
+            _cancelDeadline(verdictId);
+            return;
+        }
+        _resolve(verdictId, result, confidence, receiptPtr);
     }
 
     // ----- Internal: Deliberated mode -----
@@ -284,19 +337,7 @@ contract Veritas is IVeritas, SomniaEventHandler {
             uint8(50)
         );
 
-        uint256 reserve = platform.getRequestDeposit();
-        uint256 reward = AgentPricing.LLM_PARSE_WEBSITE_COST_PER_AGENT * AgentPricing.DEFAULT_SUBCOMMITTEE_SIZE;
-        uint256 deposit = reserve + reward;
-
-        uint256 requestId = platform.createRequest{value: deposit}(
-            AgentIds.LLM_PARSE_WEBSITE_ID,
-            address(this),
-            this.handleResponse.selector,
-            payload
-        );
-
-        v.lastRequestId = requestId;
-        requestToVerdict[requestId] = verdictId;
+        _fireAgent(verdictId, AgentIds.LLM_PARSE_WEBSITE_ID, payload, AgentPricing.LLM_PARSE_WEBSITE_COST_PER_AGENT);
     }
 
     function _handleDeliberatedResponse(
@@ -306,7 +347,14 @@ contract Veritas is IVeritas, SomniaEventHandler {
         Verdict storage v = verdicts[verdictId];
 
         if (v.stage == Stage.FetchingEvidence) {
-            string memory evidence = abi.decode(responses[0].result, (string));
+            // Take the first successful extraction for this evidence URL.
+            string memory evidence = "";
+            for (uint256 i = 0; i < responses.length; i++) {
+                if (responses[i].status == ResponseStatus.Success && responses[i].result.length > 0) {
+                    evidence = abi.decode(responses[i].result, (string));
+                    break;
+                }
+            }
             v.gatheredEvidence.push(evidence);
             emit EvidenceGathered(verdictId, v.evidenceCursor, evidence);
 
@@ -318,9 +366,14 @@ contract Veritas is IVeritas, SomniaEventHandler {
                 _fireInference(verdictId);
             }
         } else if (v.stage == Stage.Reasoning) {
-            string memory answer = abi.decode(responses[0].result, (string));
-            bool result = _parseYesNo(answer);
-            _resolve(verdictId, result, 85, responses[0].receipt);
+            (bool hasResult, bool result, uint8 confidence, uint256 receiptPtr) = _aggregateYesNo(responses);
+            if (!hasResult) {
+                v.stage = Stage.Failed;
+                emit VerdictFailed(verdictId, "no successful responses");
+                _cancelDeadline(verdictId);
+                return;
+            }
+            _resolve(verdictId, result, confidence, receiptPtr);
         }
     }
 
@@ -351,19 +404,7 @@ contract Veritas is IVeritas, SomniaEventHandler {
             allowedValues
         );
 
-        uint256 reserve = platform.getRequestDeposit();
-        uint256 reward = AgentPricing.LLM_INFERENCE_COST_PER_AGENT * AgentPricing.DEFAULT_SUBCOMMITTEE_SIZE;
-        uint256 deposit = reserve + reward;
-
-        uint256 requestId = platform.createRequest{value: deposit}(
-            AgentIds.LLM_INFERENCE_ID,
-            address(this),
-            this.handleResponse.selector,
-            payload
-        );
-
-        v.lastRequestId = requestId;
-        requestToVerdict[requestId] = verdictId;
+        _fireAgent(verdictId, AgentIds.LLM_INFERENCE_ID, payload, AgentPricing.LLM_INFERENCE_COST_PER_AGENT);
     }
 
     // ----- Internal: resolve and payout -----
@@ -399,14 +440,14 @@ contract Veritas is IVeritas, SomniaEventHandler {
         VerdictMode mode,
         uint256 numEvidenceUrls
     ) internal pure returns (uint256) {
-        uint256 reserve = 0.01 ether * AgentPricing.DEFAULT_SUBCOMMITTEE_SIZE;
+        uint256 reserve = 0.01 ether * ADVANCED_SUBCOMMITTEE_SIZE;
 
         if (mode == VerdictMode.Simple) {
-            uint256 reward = AgentPricing.LLM_PARSE_WEBSITE_COST_PER_AGENT * AgentPricing.DEFAULT_SUBCOMMITTEE_SIZE;
+            uint256 reward = AgentPricing.LLM_PARSE_WEBSITE_COST_PER_AGENT * ADVANCED_SUBCOMMITTEE_SIZE;
             return reserve + reward;
         } else {
-            uint256 evidenceReward = numEvidenceUrls * AgentPricing.LLM_PARSE_WEBSITE_COST_PER_AGENT * AgentPricing.DEFAULT_SUBCOMMITTEE_SIZE;
-            uint256 inferenceReward = AgentPricing.LLM_INFERENCE_COST_PER_AGENT * AgentPricing.DEFAULT_SUBCOMMITTEE_SIZE;
+            uint256 evidenceReward = numEvidenceUrls * AgentPricing.LLM_PARSE_WEBSITE_COST_PER_AGENT * ADVANCED_SUBCOMMITTEE_SIZE;
+            uint256 inferenceReward = AgentPricing.LLM_INFERENCE_COST_PER_AGENT * ADVANCED_SUBCOMMITTEE_SIZE;
             return reserve + evidenceReward + inferenceReward;
         }
     }

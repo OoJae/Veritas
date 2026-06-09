@@ -6,6 +6,7 @@ import {Veritas} from "../src/Veritas.sol";
 import {InsuranceVault} from "../src/consumers/InsuranceVault.sol";
 import {MockAgentRequester} from "../src/mocks/MockAgentRequester.sol";
 import {VerdictMode, Stage, Verdict} from "../src/types/VeritasTypes.sol";
+import {ResponseStatus} from "../src/interfaces/IAgentRequester.sol";
 import {ISomniaReactivityPrecompile} from "@somnia-chain/reactivity-contracts/contracts/interfaces/ISomniaReactivityPrecompile.sol";
 import {SomniaExtensions} from "@somnia-chain/reactivity-contracts/contracts/interfaces/SomniaExtensions.sol";
 
@@ -53,7 +54,7 @@ contract InsuranceVaultTest is Test {
 
     function _resolve(string memory answer) internal {
         vm.warp(block.timestamp + JOIN + 1);
-        vault.triggerResolution{value: 0.33 ether}(0);
+        vault.triggerResolution{value: 0.55 ether}(0);
         platform.simulateResponse(1, abi.encode(answer), 42);
     }
 
@@ -202,15 +203,33 @@ contract InsuranceVaultTest is Test {
     function test_cannotTriggerBeforeDeadline() public {
         _createPolicy();
         vm.expectRevert(InsuranceVault.JoinWindowOpen.selector);
-        vault.triggerResolution{value: 0.33 ether}(0);
+        vault.triggerResolution{value: 0.55 ether}(0);
     }
 
     function test_cannotTriggerTwice() public {
         _createPolicy();
         vm.warp(block.timestamp + JOIN + 1);
-        vault.triggerResolution{value: 0.33 ether}(0);
+        vault.triggerResolution{value: 0.55 ether}(0);
 
         vm.expectRevert(InsuranceVault.AlreadyTriggered.selector);
-        vault.triggerResolution{value: 0.33 ether}(0);
+        vault.triggerResolution{value: 0.55 ether}(0);
+    }
+
+    function test_retryAfterFailedVerdict() public {
+        uint256 policyId = _createPolicy();
+        vm.prank(alice);
+        vault.joinPolicy{value: 0.1 ether}(policyId);
+
+        vm.warp(block.timestamp + JOIN + 1);
+        vault.triggerResolution{value: 0.55 ether}(0); // requestId 1
+        platform.simulateFailure(1, ResponseStatus.Failed);
+
+        // Verdict failed; retry succeeds.
+        vault.triggerResolution{value: 0.55 ether}(0); // requestId 2
+        platform.simulateResponse(2, abi.encode("YES"), 1);
+
+        InsuranceVault.Policy memory p = vault.getPolicy(policyId);
+        assertTrue(p.resolved);
+        assertTrue(p.outcome);
     }
 }

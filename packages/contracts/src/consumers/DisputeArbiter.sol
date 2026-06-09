@@ -2,7 +2,7 @@
 pragma solidity ^0.8.24;
 
 import {IVeritas, VerdictMode} from "../interfaces/IVeritas.sol";
-import {Verdict} from "../types/VeritasTypes.sol";
+import {Verdict, Stage} from "../types/VeritasTypes.sol";
 
 /// @title DisputeArbiter
 /// @notice AI-judged DAO dispute resolution. Claimant raises a dispute with a
@@ -98,6 +98,11 @@ contract DisputeArbiter {
     function resolveDispute(uint256 disputeId) external payable {
         Dispute storage d = disputes[disputeId];
         if (d.resolved) revert AlreadyResolved();
+        // Allow a first resolution, or a retry if the previous verdict failed.
+        require(
+            d.verdictId == 0 || veritas.getVerdict(d.verdictId).stage == Stage.Failed,
+            "resolution in progress"
+        );
 
         string memory combinedQuestion = string.concat(
             "Dispute: ", d.question,

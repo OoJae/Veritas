@@ -81,7 +81,7 @@ contract VeritasTest is Test {
 
         Verdict memory v = veritas.getVerdict(1);
         assertTrue(v.result);
-        assertEq(v.confidence, 80);
+        assertEq(v.confidence, 100); // single successful response = 100% agreement
         assertEq(uint256(v.stage), uint256(Stage.Resolved));
         assertNotEq(v.reasoningRef, bytes32(0));
     }
@@ -180,7 +180,7 @@ contract VeritasTest is Test {
         urls[0] = "https://example.com";
 
         vm.prank(user);
-        vm.expectRevert(abi.encodeWithSignature("InsufficientPayment(uint256,uint256)", 0.33 ether, 0.01 ether));
+        vm.expectRevert(abi.encodeWithSignature("InsufficientPayment(uint256,uint256)", 0.55 ether, 0.01 ether));
         veritas.requestVerdict{value: 0.01 ether}(
             "question",
             urls,
@@ -247,12 +247,63 @@ contract VeritasTest is Test {
 
     function test_quoteVerdict_simple() public view {
         uint256 cost = veritas.quoteVerdict(VerdictMode.Simple, 0);
-        assertEq(cost, 0.33 ether);
+        assertEq(cost, 0.55 ether); // 0.01*5 reserve + 0.10*5 parse
     }
 
     function test_quoteVerdict_deliberated_2urls() public view {
         uint256 cost = veritas.quoteVerdict(VerdictMode.Deliberated, 2);
-        assertEq(cost, 0.03 ether + 2 * 0.30 ether + 0.21 ether);
+        assertEq(cost, 0.05 ether + 2 * 0.50 ether + 0.35 ether);
+    }
+
+    function _createSimpleVerdict() internal {
+        string[] memory urls = new string[](1);
+        urls[0] = "https://example.com";
+        vm.prank(user);
+        veritas.requestVerdict{value: 1 ether}(
+            "question", urls, VerdictMode.Simple, payoutTarget, abi.encodeWithSignature("noop()")
+        );
+    }
+
+    function test_aggregate_majorityYesWins() public {
+        _createSimpleVerdict();
+        bytes[] memory results = new bytes[](5);
+        bool[] memory success = new bool[](5);
+        results[0] = abi.encode("YES"); success[0] = true;
+        results[1] = abi.encode("YES"); success[1] = true;
+        results[2] = abi.encode("YES"); success[2] = true;
+        results[3] = abi.encode("NO");  success[3] = true;
+        results[4] = abi.encode("NO");  success[4] = true;
+        platform.simulateAdvancedResponse(1, results, success, 42);
+
+        Verdict memory v = veritas.getVerdict(1);
+        assertEq(uint256(v.stage), uint256(Stage.Resolved));
+        assertTrue(v.result);
+        assertEq(v.confidence, 60); // 3 of 5 agreed
+    }
+
+    function test_aggregate_toleratesFailedScrapes() public {
+        _createSimpleVerdict();
+        bytes[] memory results = new bytes[](3);
+        bool[] memory success = new bool[](3);
+        results[0] = abi.encode("YES"); success[0] = true;
+        results[1] = bytes("");         success[1] = false;
+        results[2] = bytes("");         success[2] = false;
+        platform.simulateAdvancedResponse(1, results, success, 7);
+
+        Verdict memory v = veritas.getVerdict(1);
+        assertEq(uint256(v.stage), uint256(Stage.Resolved));
+        assertTrue(v.result);
+        assertEq(v.confidence, 100); // 1 of 1 success
+    }
+
+    function test_aggregate_allFailed_marksFailed() public {
+        _createSimpleVerdict();
+        bytes[] memory results = new bytes[](3);
+        bool[] memory success = new bool[](3); // all false
+        platform.simulateAdvancedResponse(1, results, success, 0);
+
+        Verdict memory v = veritas.getVerdict(1);
+        assertEq(uint256(v.stage), uint256(Stage.Failed));
     }
 
     function test_requestToVerdict_mapping() public {
@@ -313,7 +364,7 @@ contract VeritasTest is Test {
         v = veritas.getVerdict(1);
         assertEq(uint256(v.stage), uint256(Stage.Resolved));
         assertTrue(v.result);
-        assertEq(v.confidence, 85);
+        assertEq(v.confidence, 100); // single successful response = 100% agreement
     }
 
     function test_deliberated_multiUrl_gathersAllEvidence() public {
@@ -407,7 +458,7 @@ contract VeritasTest is Test {
         urls[1] = "https://example.com/source2";
 
         vm.prank(user);
-        veritas.requestVerdict{value: 1 ether}(
+        veritas.requestVerdict{value: 2 ether}(
             "question",
             urls,
             VerdictMode.Deliberated,
@@ -432,7 +483,7 @@ contract VeritasTest is Test {
     function test_deliberated_quoteVerdict_exactCost() public {
         uint256 cost = veritas.quoteVerdict(VerdictMode.Deliberated, 1);
         // reserve 0.03 + 1 evidence (0.10*3) + inference (0.07*3) = 0.03 + 0.30 + 0.21 = 0.54
-        assertEq(cost, 0.54 ether);
+        assertEq(cost, 0.90 ether); // 0.05 reserve + 0.50 evidence + 0.35 inference
 
         string[] memory urls = new string[](1);
         urls[0] = "https://example.com";

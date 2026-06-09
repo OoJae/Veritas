@@ -2,7 +2,7 @@
 pragma solidity ^0.8.24;
 
 import {IVeritas, VerdictMode} from "../interfaces/IVeritas.sol";
-import {Verdict} from "../types/VeritasTypes.sol";
+import {Verdict, Stage} from "../types/VeritasTypes.sol";
 
 /// @title InsuranceVault
 /// @notice Parametric insurance that auto-pays based on AI verdicts from Veritas.
@@ -89,8 +89,9 @@ contract InsuranceVault {
     function triggerResolution(uint256 policyId) external payable {
         Policy storage p = policies[policyId];
         if (block.timestamp < p.resolveAfter) revert JoinWindowOpen();
-        if (p.verdictId != 0) revert AlreadyTriggered();
         if (p.resolved) revert PolicyAlreadyResolved();
+        // Allow a first trigger, or a retry if the previous verdict failed.
+        if (p.verdictId != 0 && veritas.getVerdict(p.verdictId).stage != Stage.Failed) revert AlreadyTriggered();
 
         bytes memory payoutCalldata = abi.encodeWithSelector(
             InsuranceVault.resolvePolicy.selector,

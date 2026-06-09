@@ -6,6 +6,7 @@ import {Veritas} from "../src/Veritas.sol";
 import {PredictionMarket} from "../src/consumers/PredictionMarket.sol";
 import {MockAgentRequester} from "../src/mocks/MockAgentRequester.sol";
 import {VerdictMode, Stage, Verdict} from "../src/types/VeritasTypes.sol";
+import {ResponseStatus} from "../src/interfaces/IAgentRequester.sol";
 import {ISomniaReactivityPrecompile} from "@somnia-chain/reactivity-contracts/contracts/interfaces/ISomniaReactivityPrecompile.sol";
 import {SomniaExtensions} from "@somnia-chain/reactivity-contracts/contracts/interfaces/SomniaExtensions.sol";
 
@@ -49,7 +50,7 @@ contract PredictionMarketTest is Test {
 
     function _trigger(uint256 marketId) internal {
         vm.warp(block.timestamp + BETTING + 1);
-        market.triggerResolution{value: 0.33 ether}(marketId);
+        market.triggerResolution{value: 0.55 ether}(marketId);
     }
 
     function test_createMarket_and_stake() public {
@@ -110,15 +111,30 @@ contract PredictionMarketTest is Test {
     function test_cannotTriggerBeforeDeadline() public {
         uint256 marketId = market.createMarket("q", _urls(), BETTING);
         vm.expectRevert("betting still open");
-        market.triggerResolution{value: 0.33 ether}(marketId);
+        market.triggerResolution{value: 0.55 ether}(marketId);
     }
 
     function test_cannotTriggerTwice() public {
         uint256 marketId = _createAndStake(1 ether, 1 ether);
         _trigger(marketId);
 
-        vm.expectRevert("already triggered");
-        market.triggerResolution{value: 0.33 ether}(marketId);
+        vm.expectRevert("resolution in progress");
+        market.triggerResolution{value: 0.55 ether}(marketId);
+    }
+
+    function test_retryAfterFailedVerdict() public {
+        uint256 marketId = _createAndStake(1 ether, 1 ether);
+        vm.warp(block.timestamp + BETTING + 1);
+        market.triggerResolution{value: 0.55 ether}(marketId); // requestId 1
+        platform.simulateFailure(1, ResponseStatus.Failed);
+
+        // Verdict failed; a retry is allowed and succeeds.
+        market.triggerResolution{value: 0.55 ether}(marketId); // requestId 2
+        platform.simulateResponse(2, abi.encode("YES"), 1);
+
+        PredictionMarket.Market memory m = market.getMarket(marketId);
+        assertTrue(m.resolved);
+        assertTrue(m.outcome);
     }
 
     function test_cannotClaimTwice() public {

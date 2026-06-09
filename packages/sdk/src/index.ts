@@ -37,13 +37,15 @@ export function getReceiptUrl(requestId: string | bigint, network: "testnet" | "
   return `${RECEIPT_URLS[network]}/agent-receipts?contractAddress=${platform}&requestId=${requestId}`;
 }
 
+// Costs reflect the 5-validator subcommittee (Threshold 3-of-5) used for
+// resilience against flaky scrapes.
 export function quoteVerdictSimple(): bigint {
-  return BigInt("330000000000000000"); // 0.33 STT
+  return BigInt("550000000000000000"); // 0.55 STT = 0.01*5 reserve + 0.10*5 parse
 }
 
 export function quoteVerdictDeliberated(numEvidenceUrls: number): bigint {
-  const reserve = BigInt("30000000000000000"); // 0.03
-  const evidenceCost = BigInt(numEvidenceUrls) * BigInt("300000000000000000"); // 0.30 each
-  const inferenceCost = BigInt("210000000000000000"); // 0.07 * 3
+  const reserve = BigInt("50000000000000000"); // 0.01 * 5
+  const evidenceCost = BigInt(numEvidenceUrls) * BigInt("500000000000000000"); // 0.10*5 each
+  const inferenceCost = BigInt("350000000000000000"); // 0.07 * 5
   return reserve + evidenceCost + inferenceCost;
 }

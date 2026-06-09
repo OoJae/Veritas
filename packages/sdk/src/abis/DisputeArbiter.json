@@ -16,7 +16,7 @@
   },
   {
     "type": "function",
-    "name": "EVIDENCE_WINDOW",
+    "name": "MAX_EVIDENCE_WINDOW",
     "inputs": [],
     "outputs": [
       {
@@ -230,6 +230,11 @@
         "name": "claimantEvidenceUrls",
         "type": "string[]",
         "internalType": "string[]"
+      },
+      {
+        "name": "evidenceWindow",
+        "type": "uint256",
+        "internalType": "uint256"
       }
     ],
     "outputs": [
@@ -393,6 +398,25 @@
     "anonymous": false
   },
   {
+    "type": "event",
+    "name": "ResolutionTriggered",
+    "inputs": [
+      {
+        "name": "disputeId",
+        "type": "uint256",
+        "indexed": true,
+        "internalType": "uint256"
+      },
+      {
+        "name": "verdictId",
+        "type": "uint256",
+        "indexed": false,
+        "internalType": "uint256"
+      }
+    ],
+    "anonymous": false
+  },
+  {
     "type": "error",
     "name": "AlreadyClaimed",
     "inputs": []
@@ -410,6 +434,11 @@
   {
     "type": "error",
     "name": "EvidenceWindowClosed",
+    "inputs": []
+  },
+  {
+    "type": "error",
+    "name": "InvalidEvidenceWindow",
     "inputs": []
   },
   {

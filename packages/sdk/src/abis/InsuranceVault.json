@@ -47,11 +47,6 @@
         "internalType": "uint256"
       },
       {
-        "name": "payoutAmount",
-        "type": "uint256",
-        "internalType": "uint256"
-      },
-      {
         "name": "maxParticipants",
         "type": "uint256",
         "internalType": "uint256"
@@ -69,7 +64,7 @@
         "internalType": "uint256"
       }
     ],
-    "stateMutability": "nonpayable"
+    "stateMutability": "payable"
   },
   {
     "type": "function",
@@ -122,11 +117,6 @@
             "internalType": "uint256"
           },
           {
-            "name": "payoutAmount",
-            "type": "uint256",
-            "internalType": "uint256"
-          },
-          {
             "name": "maxParticipants",
             "type": "uint256",
             "internalType": "uint256"
@@ -150,6 +140,11 @@
             "name": "outcome",
             "type": "bool",
             "internalType": "bool"
+          },
+          {
+            "name": "perParticipant",
+            "type": "uint256",
+            "internalType": "uint256"
           },
           {
             "name": "createdAt",
@@ -267,11 +262,6 @@
         "internalType": "uint256"
       },
       {
-        "name": "payoutAmount",
-        "type": "uint256",
-        "internalType": "uint256"
-      },
-      {
         "name": "maxParticipants",
         "type": "uint256",
         "internalType": "uint256"
@@ -297,6 +287,11 @@
         "internalType": "bool"
       },
       {
+        "name": "perParticipant",
+        "type": "uint256",
+        "internalType": "uint256"
+      },
+      {
         "name": "createdAt",
         "type": "uint256",
         "internalType": "uint256"
@@ -308,6 +303,25 @@
       },
       {
         "name": "resolveAfter",
+        "type": "uint256",
+        "internalType": "uint256"
+      }
+    ],
+    "stateMutability": "view"
+  },
+  {
+    "type": "function",
+    "name": "poolBalance",
+    "inputs": [
+      {
+        "name": "",
+        "type": "uint256",
+        "internalType": "uint256"
+      }
+    ],
+    "outputs": [
+      {
+        "name": "",
         "type": "uint256",
         "internalType": "uint256"
       }
@@ -401,12 +415,6 @@
         "internalType": "uint256"
       },
       {
-        "name": "payoutAmount",
-        "type": "uint256",
-        "indexed": false,
-        "internalType": "uint256"
-      },
-      {
         "name": "resolveAfter",
         "type": "uint256",
         "indexed": false,
@@ -485,6 +493,11 @@
   {
     "type": "error",
     "name": "AlreadyTriggered",
+    "inputs": []
+  },
+  {
+    "type": "error",
+    "name": "InsufficientPoolFunding",
     "inputs": []
   },
   {
