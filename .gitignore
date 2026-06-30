@@ -24,6 +24,8 @@ screenshots/
 landing-page.png
 veritas-landing-verified.png
 veritas-status-final.png
+brand/
+scripts/verify-frontend.mjs
 
 # Foundry
 packages/contracts/out/
