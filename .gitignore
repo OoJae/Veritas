@@ -14,13 +14,16 @@ out/
 .playwright-mcp/
 .turbo/
 
-# Internal research/planning docs (not for public repo)
+# Internal research/planning/notes docs (not for public repo)
 Veritas-Build-Plan.md
 Winning-the-Somnia-Agentathon-Research.md
+Notes.md
 
-# Internal design artifacts
+# Internal design / QA artifacts
 screenshots/
 landing-page.png
+veritas-landing-verified.png
+veritas-status-final.png
 
 # Foundry
 packages/contracts/out/
